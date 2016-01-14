@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>2048 Test</title>
+</head>
+<style>
+	.slide{
+		display: flex;
+		width: 1024px;
+		height: 768px;
+		background-color: lightgrey;
+	}
+
+	.game-field{
+		margin: auto;
+		display: flex;
+		flex-flow: column wrap;
+		justify-content: space-around;
+		width: 480px;
+		height: 480px;
+	}
+
+	.column{
+		display: flex;
+		flex-flow: row nowrap;
+		width: 480px;
+		justify-content: space-around;
+	}
+
+	.square{
+		border: 1px solid black;
+		width: 100px;
+		height: 100px;
+		background-color: grey;
+	}
+</style>
+<body>
+	<article class="slide">
+		<div id="gameField" class="game-field">
+			<div class="column">
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+			</div>
+			<div class="column">
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+			</div>
+			<div class="column">
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+			</div>
+			<div class="column">
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+				<div class="square"></div>
+			</div>
+		</div>
+	</article>
+</body>
+<script>
+	var columnArray = [],
+		valuesArray = [2,4];
+
+//Utils
+	function getRandom(min, max) {
+		return Math.random() * (max - min) + min;
+	}
+
+	function getRoundedRandom(min,max,rounded){
+		return rounded ?
+				Math.round(getRandom(min,max)) :
+				Math.floor(getRandom(min,max))
+	}
+
+	function decreaseSorting(a, b) {
+		if (a > b){
+			return -1;
+		}
+		if (a < b){
+			return 1;
+		}
+		if (a = b){
+			return 0;
+		}
+	}
+//Constructors
+	function StartValues(options){
+		this.startValues = [];
+
+		options.values.forEach(function(item,i){
+			var valueOpts = {};
+
+			valueOpts.value = item;
+			valueOpts.probability = options.prob[i];
+			this.startValues.push(valueOpts);
+		},this);
+	}
+
+	StartValues.prototype.getValue = function(){
+		var startValue,
+			probabilities = [],
+			random = Math.random(),
+			that = this;
+
+		this.startValues.forEach(function(item){
+			probabilities.push(item.probability);
+		});
+
+		probabilities.sort(decreaseSorting());
+
+		startValue = probabilities.reduce(function(prev,curr,i){
+			console.log(probabilities,random,prev + curr,that.startValues[i].value);
+			if (random > prev && random < (prev + curr)){
+				startValue = that.startValues[i].value;
+				console.log("StartValue",startValue);
+			}
+			return prev + curr;
+		},0);
+
+		return startValue;
+
+	};
+
+	function RowArray(numOfRows){
+		var counter;
+
+		this.rowArray = [];
+
+		for(counter = 0; counter < numOfRows; counter++){
+			this.rowArray.push("");
+		}
+	}
+
+	function GameField(numOfRows,numOfColumns){
+		var counter;
+
+		this.columnArray = [];
+
+		for(counter = 0; counter < numOfColumns; counter++){
+			this.columnArray.push(new RowArray(numOfRows));
+		}
+	}
+
+//Code
+	function generateNewElements(){
+
+	}
+
+	function printArray(){}
+
+	document.addEventListener("keyup",function(event){
+		var keyCode = event.keyCode;
+
+		switch(keyCode) {
+			case 38:
+			{
+				console.log("up");
+				break;
+			}
+			case 40:
+			{
+				console.log("down");
+				break;
+			}
+			case 37:
+			{
+				console.log("left");
+				break;
+			}
+			case 39:
+			{
+				console.log("right");
+				break;
+			}
+		}
+	});
+
+	gameField = new GameField(4,4);
+
+	gameField.columnArray.forEach(function(item){
+		console.log(item.rowArray);
+	});
+
+	values = new StartValues({values : [2,4,8,16], prob :[0.5,0.1,0.3,0.1]});
+
+	console.log(values.getValue());
+
+</script>
+</html>
