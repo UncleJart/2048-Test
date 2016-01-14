@@ -114,13 +114,24 @@
 			probabilities.push(item.probability);
 		});
 
-		probabilities.sort(decreaseSorting());
+		console.log(probabilities);
+		probabilities.sort(function(a, b){
+			if (a > b){
+				return -1;
+			}
+			if (a < b){
+				return 1;
+			}
+			if (a = b){
+				return 0;
+			}
+		});
+		console.log(probabilities);
 
-		startValue = probabilities.reduce(function(prev,curr,i){
+		probabilities.reduce(function(prev,curr,i){
 			console.log(probabilities,random,prev + curr,that.startValues[i].value);
 			if (random > prev && random < (prev + curr)){
 				startValue = that.startValues[i].value;
-				console.log("StartValue",startValue);
 			}
 			return prev + curr;
 		},0);
