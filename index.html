@@ -80,7 +80,19 @@
 				Math.floor(getRandom(min,max))
 	}
 
-	function decreaseSorting(a, b) {
+	function decreaseArraySorting(a, b) {
+		if (a > b){
+			return -1;
+		}
+		if (a < b){
+			return 1;
+		}
+		if (a = b){
+			return 0;
+		}
+	}
+
+	function increaseArraySorting(a, b) {
 		if (a > b){
 			return -1;
 		}
@@ -114,22 +126,9 @@
 			probabilities.push(item.probability);
 		});
 
-		console.log(probabilities);
-		probabilities.sort(function(a, b){
-			if (a > b){
-				return -1;
-			}
-			if (a < b){
-				return 1;
-			}
-			if (a = b){
-				return 0;
-			}
-		});
-		console.log(probabilities);
+		probabilities.sort(decreaseArraySorting);
 
 		probabilities.reduce(function(prev,curr,i){
-			console.log(probabilities,random,prev + curr,that.startValues[i].value);
 			if (random > prev && random < (prev + curr)){
 				startValue = that.startValues[i].value;
 			}
@@ -139,28 +138,68 @@
 		return startValue;
 
 	};
-
-	function RowArray(numOfRows){
+//Objects for creating Game Field
+	function RowArray(numOfRows,startValue){
 		var counter;
 
 		this.rowArray = [];
 
 		for(counter = 0; counter < numOfRows; counter++){
-			this.rowArray.push("");
+			this.rowArray.push(startValue);
 		}
 	}
 
-	function GameField(numOfRows,numOfColumns){
-		var counter;
+	function GameField(numOfRows,numOfColumns,elementValues){
+		var counter,
+			startValue = "";
 
 		this.columnArray = [];
+		this.startValue = startValue;
+		this.elementValues = new StartValues(elementValues);
 
 		for(counter = 0; counter < numOfColumns; counter++){
-			this.columnArray.push(new RowArray(numOfRows));
+			this.columnArray.push(new RowArray(numOfRows,startValue));
 		}
 	}
+//Methods of Game Field
+	GameField.prototype.generateElements = function(){
 
-//Code
+		if (this.checkForEmptyGameField()){
+
+		}
+
+		/*this.columnArray.forEach(function(item){
+			item.rowArray.forEach(function(item){
+
+			});
+		});*/
+	};
+
+	GameField.prototype.checkForEmptyGameField = function(){
+		return this.columnArray.every(function(item){
+			return item.rowArray.every(function(item){
+				return item === this.startValue;
+			},this);
+		},this);
+	};
+
+	GameField.prototype.generateElementPosition = function(){
+		var position = [],
+			columns = this.columnArray.length - 1,
+			rows = this.columnArray[0].rowArray.length - 1;
+
+		position.push(getRoundedRandom(0,columns,true));
+		position.push(getRoundedRandom(0,rows,true));
+
+		return position;
+	};
+
+	GameField.prototype.checkIfElementIsEmpty = function(position){
+		var column = position[0],
+			row = position[1];
+		return this.columnArray[column].rowArray[row] === this.startValue;
+	};
+
 	function generateNewElements(){
 
 	}
@@ -194,15 +233,14 @@
 		}
 	});
 
-	gameField = new GameField(4,4);
+	gameField = new GameField(4,4,{values : [2,4], prob :[0.9,0.1]});
 
 	gameField.columnArray.forEach(function(item){
 		console.log(item.rowArray);
 	});
 
-	values = new StartValues({values : [2,4,8,16], prob :[0.5,0.1,0.3,0.1]});
-
-	console.log(values.getValue());
+	console.log(gameField.generateElementPosition());
+	console.log(gameField.checkForEmptyGameField());
 
 </script>
 </html>
