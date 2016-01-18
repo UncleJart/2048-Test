@@ -111,7 +111,7 @@
 			var valueOpts = {};
 
 			valueOpts.value = item;
-			valueOpts.probability = options.prob[i];
+			valueOpts.probability = options.probability[i];
 			this.startValues.push(valueOpts);
 		},this);
 	}
@@ -149,32 +149,47 @@
 		}
 	}
 
-	function GameField(numOfRows,numOfColumns,elementValues){
+	function GameField(numOfRows,numOfColumns,elementValues,numOfStartElements){
 		var counter,
 			startValue = "";
+
+		numOfStartElements = numOfStartElements || 2;
 
 		this.columnArray = [];
 		this.startValue = startValue;
 		this.elementValues = new StartValues(elementValues);
+		this.numOfStartElelements = numOfStartElements;
 
 		for(counter = 0; counter < numOfColumns; counter++){
 			this.columnArray.push(new RowArray(numOfRows,startValue));
 		}
 	}
 //Methods of Game Field
-	GameField.prototype.generateElements = function(){
+//Генерация элемента
+	GameField.prototype.generateElement = function(){
+		var position,column,row;
 
-		if (this.checkForEmptyGameField()){
+		do{
+			position = this.generateElementPosition();
+			column = position[0];
+			row = position[1];
+		}while(!this.checkIfElementIsEmpty(position));
 
-		}
+		this.columnArray[column].rowArray[row] = this.elementValues.getValue();
 
-		/*this.columnArray.forEach(function(item){
-			item.rowArray.forEach(function(item){
+		return position;
 
-			});
-		});*/
 	};
+//Генерация стартовых элементов
+	GameField.prototype.generateStartElements = function(){
+		var counter;
 
+		for(counter = 1; counter<=this.numOfStartElelements; counter++){
+			this.generateElement();
+		}
+		printArray(this);
+	};
+//Проверка на пустое поле, т.е. равно ли поле начальному значению
 	GameField.prototype.checkForEmptyGameField = function(){
 		return this.columnArray.every(function(item){
 			return item.rowArray.every(function(item){
@@ -182,7 +197,7 @@
 			},this);
 		},this);
 	};
-
+//Генерация случайной позиции элемента
 	GameField.prototype.generateElementPosition = function(){
 		var position = [],
 			columns = this.columnArray.length - 1,
@@ -193,54 +208,166 @@
 
 		return position;
 	};
-
+//Проверка на соответствие элемента начальному значению
 	GameField.prototype.checkIfElementIsEmpty = function(position){
 		var column = position[0],
 			row = position[1];
 		return this.columnArray[column].rowArray[row] === this.startValue;
 	};
+//Сдвиг элементов горизонтально (вправо или влево)
+	GameField.prototype.moveHorizontally = function(moveRight){
+		var that = this;
+		this.columnArray.forEach(function(item,i,array){
+			var row = item.rowArray,
+					position,
+					rowLength = row.length - 1,
+					/*lastEmptyElementPos,*/
+					check,
+					options = {};
 
-	function generateNewElements(){
+			if(moveRight){
+				options.startPoint = row.length - 1;
+				options.endPoint = 0;
+				options.step = -1;
+				options.check = function(cnt){
+					return cnt >= this.endPoint;
+				}
+			}else{
+				options.startPoint = 0;
+				options.endPoint = row.length - 1;
+				options.step = 1;
+				options.check = function(cnt){
+					return cnt <= this.endPoint;
+				}
+			}
 
+			row = moveElementsOfArray(this,row,options);
+
+			function moveElementsOfArray(targetObj,array,options){
+				var cnt,position,
+					startPoint = options.startPoint,
+					endPoint = options.endPoint,
+					step = options.step,
+					lastEmptyElementPos;
+
+				for(cnt = startPoint; options.check(cnt); cnt += step){//position,cnt,rowLength,endpoint ======>StartPoint, EndPoint , step
+					position = [i,cnt];
+
+					console.log(options.check(cnt),cnt,endPoint);
+
+					if(array[cnt] === targetObj.startValue){
+						if(!lastEmptyElementPos){
+							lastEmptyElementPos = cnt;
+						}
+					}
+
+					if(array[cnt] !== targetObj.startValue && cnt !== endPoint){ //Endpoint
+						if(lastEmptyElementPos){
+
+							lastEmptyElementPos = checkForMultipleEmptyElements(targetObj,lastEmptyElementPos,true);
+
+							array[lastEmptyElementPos] = array[cnt];
+							array[cnt] = targetObj.startValue;
+							lastEmptyElementPos = cnt;
+						}
+					}
+				}
+				console.log("Array",array);
+				return array;
+			}
+
+
+//				for(var cnt = rowLength; cnt >= 0; cnt--){//position,cnt,rowLength,endpoint ======>StartPoint, EndPoint , step
+//					position = [i,cnt];
+//
+//					if(that.checkIfElementIsEmpty(position)){
+//						if(!lastEmptyElementPos){
+//							lastEmptyElementPos = cnt;
+//						}
+//					}
+//
+//					if(!that.checkIfElementIsEmpty(position) && cnt !== rowLength){ //Endpoint
+//						if(lastEmptyElementPos){
+//
+//							lastEmptyElementPos = checkForMultipleEmptyElements(this,lastEmptyElementPos,true);
+//
+//							row[lastEmptyElementPos] = row[cnt];
+//							row[cnt] = that.startValue;
+//							lastEmptyElementPos = cnt;
+//						}
+//					}
+//				}
+
+			function checkForMultipleEmptyElements(targetObj,lastEmptyElementPos,forwards){
+				var lastPosition = [i,lastEmptyElementPos],
+					step;
+
+				forwards ? step = 1 : step = -1;
+
+				while(targetObj.checkIfElementIsEmpty(lastPosition)){
+					lastEmptyElementPos += step;
+					lastPosition = [i,lastEmptyElementPos];
+				}
+
+				lastEmptyElementPos--;
+
+				return lastEmptyElementPos;
+			}
+		},this);
+		printArray(this);
+	};
+//	function generateNewElements(){
+//
+//	}
+
+//Ф-ия для проверки пустых строк
+
+	function printArray(array){
+		array.columnArray.forEach(function(item){
+			console.log(item.rowArray);
+		});
 	}
 
-	function printArray(){}
+	function startGame(){
+		var startOptions = {
+			values : [2,4],
+			probability :[0.9,0.1]
+			},
+			gameField = new GameField(4,4,startOptions,8);  //---> to 2
 
-	document.addEventListener("keyup",function(event){
-		var keyCode = event.keyCode;
+		console.log(gameField.generateStartElements());
 
-		switch(keyCode) {
-			case 38:
-			{
-				console.log("up");
-				break;
+
+		document.addEventListener("keyup",function(event){
+			var keyCode = event.keyCode;
+
+			switch(keyCode) {
+				case 38:
+				{
+					console.log("up");
+					break;
+				}
+				case 40:
+				{
+					console.log("down");
+					break;
+				}
+				case 37:
+				{
+					console.log("left");
+					break;
+				}
+				case 39:
+				{
+					console.log("right");
+					gameField.moveHorizontally(true);
+					break;
+				}
 			}
-			case 40:
-			{
-				console.log("down");
-				break;
-			}
-			case 37:
-			{
-				console.log("left");
-				break;
-			}
-			case 39:
-			{
-				console.log("right");
-				break;
-			}
-		}
-	});
+		});
+	}
 
-	gameField = new GameField(4,4,{values : [2,4], prob :[0.9,0.1]});
-
-	gameField.columnArray.forEach(function(item){
-		console.log(item.rowArray);
-	});
-
-	console.log(gameField.generateElementPosition());
-	console.log(gameField.checkForEmptyGameField());
+	startGame();
 
 </script>
 </html>
