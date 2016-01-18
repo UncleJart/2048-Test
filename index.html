@@ -215,17 +215,13 @@
 		return this.columnArray[column].rowArray[row] === this.startValue;
 	};
 //Сдвиг элементов горизонтально (вправо или влево)
-	GameField.prototype.moveHorizontally = function(moveRight){
+	GameField.prototype.moveHorizontally = function(moveStraight){
 		var that = this;
-		this.columnArray.forEach(function(item,i,array){
+		this.columnArray.forEach(function(item){
 			var row = item.rowArray,
-					position,
-					rowLength = row.length - 1,
-					/*lastEmptyElementPos,*/
-					check,
-					options = {};
+				options = {};
 
-			if(moveRight){
+			if(moveStraight){
 				options.startPoint = row.length - 1;
 				options.endPoint = 0;
 				options.step = -1;
@@ -243,82 +239,67 @@
 
 			row = moveElementsOfArray(this,row,options);
 
-			function moveElementsOfArray(targetObj,array,options){
-				var cnt,position,
-					startPoint = options.startPoint,
-					endPoint = options.endPoint,
-					step = options.step,
-					lastEmptyElementPos;
-
-				for(cnt = startPoint; options.check(cnt); cnt += step){//position,cnt,rowLength,endpoint ======>StartPoint, EndPoint , step
-					position = [i,cnt];
-
-					console.log(options.check(cnt),cnt,endPoint);
-
-					if(array[cnt] === targetObj.startValue){
-						if(!lastEmptyElementPos){
-							lastEmptyElementPos = cnt;
-						}
-					}
-
-					if(array[cnt] !== targetObj.startValue && cnt !== endPoint){ //Endpoint
-						if(lastEmptyElementPos){
-
-							lastEmptyElementPos = checkForMultipleEmptyElements(targetObj,lastEmptyElementPos,true);
-
-							array[lastEmptyElementPos] = array[cnt];
-							array[cnt] = targetObj.startValue;
-							lastEmptyElementPos = cnt;
-						}
-					}
-				}
-				console.log("Array",array);
-				return array;
-			}
-
-
-//				for(var cnt = rowLength; cnt >= 0; cnt--){//position,cnt,rowLength,endpoint ======>StartPoint, EndPoint , step
-//					position = [i,cnt];
-//
-//					if(that.checkIfElementIsEmpty(position)){
-//						if(!lastEmptyElementPos){
-//							lastEmptyElementPos = cnt;
-//						}
-//					}
-//
-//					if(!that.checkIfElementIsEmpty(position) && cnt !== rowLength){ //Endpoint
-//						if(lastEmptyElementPos){
-//
-//							lastEmptyElementPos = checkForMultipleEmptyElements(this,lastEmptyElementPos,true);
-//
-//							row[lastEmptyElementPos] = row[cnt];
-//							row[cnt] = that.startValue;
-//							lastEmptyElementPos = cnt;
-//						}
-//					}
-//				}
-
-			function checkForMultipleEmptyElements(targetObj,lastEmptyElementPos,forwards){
-				var lastPosition = [i,lastEmptyElementPos],
-					step;
-
-				forwards ? step = 1 : step = -1;
-
-				while(targetObj.checkIfElementIsEmpty(lastPosition)){
-					lastEmptyElementPos += step;
-					lastPosition = [i,lastEmptyElementPos];
-				}
-
-				lastEmptyElementPos--;
-
-				return lastEmptyElementPos;
-			}
 		},this);
 		printArray(this);
 	};
-//	function generateNewElements(){
-//
-//	}
+//Ф-ии для сдвига элементов массива
+	function moveElementsOfArray(targetObj,array,options){
+		var cnt,
+				startPoint = options.startPoint,
+				endPoint = options.endPoint,
+				step = options.step,
+				startValue = targetObj.startValue,
+				lastEmptyElementPos = null;
+
+		for(cnt = startPoint; options.check(cnt); cnt += step){
+
+			lastEmptyElementPos = setStartEmptyElement(array,startValue,cnt,lastEmptyElementPos);
+
+			if(array[cnt] !== startValue && cnt !== startPoint){
+				if(lastEmptyElementPos !== null){
+					lastEmptyElementPos = getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElementPos);
+					array[lastEmptyElementPos] = array[cnt];
+					array[cnt] = targetObj.startValue;
+					lastEmptyElementPos = cnt;
+				}
+			}
+		}
+		return array;
+	}
+
+	function setStartEmptyElement(array,startValue,cnt,lastEmptyElementPos){
+		if(array[cnt] === startValue){
+			if(lastEmptyElementPos === null){
+				lastEmptyElementPos = cnt;
+			}
+		}
+		return lastEmptyElementPos;
+	}
+
+	function getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElementPos){
+		if(startPoint > endPoint) {
+			lastEmptyElementPos = checkForMultipleEmptyElements(array,startValue,lastEmptyElementPos,true);
+		}else{
+			lastEmptyElementPos = checkForMultipleEmptyElements(array,startValue,lastEmptyElementPos);
+		}
+		return lastEmptyElementPos;
+	}
+
+
+	function checkForMultipleEmptyElements(array,startValue,lastEmptyElementPos,moveStraight){
+		var step;
+
+		if(moveStraight){//Тернарный оператор не сработал
+			step = 1;
+		}else{
+			step = -1;
+		}
+		while(array[lastEmptyElementPos] === startValue){
+			lastEmptyElementPos += step;
+		}
+		lastEmptyElementPos -= step;
+		return lastEmptyElementPos;
+	}
 
 //Ф-ия для проверки пустых строк
 
@@ -341,6 +322,8 @@
 		document.addEventListener("keyup",function(event){
 			var keyCode = event.keyCode;
 
+			event.preventDefault();
+
 			switch(keyCode) {
 				case 38:
 				{
@@ -355,6 +338,7 @@
 				case 37:
 				{
 					console.log("left");
+					gameField.moveHorizontally();
 					break;
 				}
 				case 39:
