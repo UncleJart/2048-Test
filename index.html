@@ -139,7 +139,7 @@
 
 	};
 //Objects for creating Game Field
-	function RowArray(numOfRows,startValue){
+	/*function RowArray(numOfRows,startValue){
 		var counter;
 
 		this.rowArray = [];
@@ -147,21 +147,25 @@
 		for(counter = 0; counter < numOfRows; counter++){
 			this.rowArray.push(startValue);
 		}
-	}
+	}*/
 
 	function GameField(numOfRows,numOfColumns,elementValues,numOfStartElements){
-		var counter,
+		var cnt,cnt2,rowArray,
 			startValue = "";
 
 		numOfStartElements = numOfStartElements || 2;
 
-		this.columnArray = [];
+		this.gameField = [];
 		this.startValue = startValue;
 		this.elementValues = new StartValues(elementValues);
 		this.numOfStartElelements = numOfStartElements;
 
-		for(counter = 0; counter < numOfColumns; counter++){
-			this.columnArray.push(new RowArray(numOfRows,startValue));
+		for(cnt = 0; cnt < numOfColumns; cnt++){
+			rowArray = [];
+			for(cnt2 = 0; cnt2 < numOfRows; cnt2++){
+				rowArray.push(startValue);
+			}
+			this.gameField.push(rowArray);
 		}
 	}
 //Methods of Game Field
@@ -175,7 +179,7 @@
 			row = position[1];
 		}while(!this.checkIfElementIsEmpty(position));
 
-		this.columnArray[column].rowArray[row] = this.elementValues.getValue();
+		this.gameField[column][row] = this.elementValues.getValue();
 
 		return position;
 
@@ -184,15 +188,15 @@
 	GameField.prototype.generateStartElements = function(){
 		var counter;
 
-		for(counter = 1; counter<=this.numOfStartElelements; counter++){
+		for(counter = 1; counter <= this.numOfStartElelements; counter++){
 			this.generateElement();
 		}
 		printArray(this);
 	};
 //Проверка на пустое поле, т.е. равно ли поле начальному значению
 	GameField.prototype.checkForEmptyGameField = function(){
-		return this.columnArray.every(function(item){
-			return item.rowArray.every(function(item){
+		return this.gameField.every(function(item){
+			return item.every(function(item){
 				return item === this.startValue;
 			},this);
 		},this);
@@ -200,8 +204,8 @@
 //Генерация случайной позиции элемента
 	GameField.prototype.generateElementPosition = function(){
 		var position = [],
-			columns = this.columnArray.length - 1,
-			rows = this.columnArray[0].rowArray.length - 1;
+			columns = this.gameField.length - 1,
+			rows = this.gameField[0].length - 1;
 
 		position.push(getRoundedRandom(0,columns,true));
 		position.push(getRoundedRandom(0,rows,true));
@@ -212,15 +216,13 @@
 	GameField.prototype.checkIfElementIsEmpty = function(position){
 		var column = position[0],
 			row = position[1];
-		return this.columnArray[column].rowArray[row] === this.startValue;
+		return this.gameField[column][row] === this.startValue;
 	};
 //Сдвиг элементов горизонтально (вправо или влево)
 	GameField.prototype.moveHorizontally = function(moveStraight){
-		var that = this;
-		this.columnArray.forEach(function(item){
-			var row = item.rowArray,
+		this.gameField.forEach(function(item){
+			var row = item,
 				options = {};
-
 			if(moveStraight){
 				options.startPoint = row.length - 1;
 				options.endPoint = 0;
@@ -244,40 +246,74 @@
 	};
 
 	GameField.prototype.moveVertically = function(moveStraight){
-		/*var reverseArray = [],
-			column;
+		this.gameField = reverseArray(this.gameField);
 
-		this.columnArray[0].rowArray.forEach(function(_,i){
-			column = [];
-			this.columnArray.forEach(function(item){
-				column.push(item.rowArray[i]);
-			});
-			reverseArray.push(column);
-		},this);*/
+		this.gameField.forEach(function(item){
+			var row = item,
+					options = {};
+			if(!moveStraight){
+				options.startPoint = row.length - 1;
+				options.endPoint = 0;
+				options.step = -1;
+				options.check = function(cnt){
+					return cnt >= this.endPoint;
+				}
+			}else{
+				options.startPoint = 0;
+				options.endPoint = row.length - 1;
+				options.step = 1;
+				options.check = function(cnt){
+					return cnt <= this.endPoint;
+				}
+			}
 
-		reverseArray(this.columnArray,this.columnArray[0].rowArray);
+			row = moveElementsOfArray(this,row,options);
+
+		},this);
+
+		this.gameField = reverseArray(this.gameField);
+
+		printArray(this);
+
 
 	};
 
-	function reverseArray(array1,array2){
+	function reverseArray(targetArray){
 		var reverseArray = [],
-				column;
+			newRow;
 
-		array2.forEach(function(_,i){
-			column = [];
-			array1.forEach(function(item){
-				column.push(item.rowArray[i]);
+		targetArray[0].forEach(function(_,i){
+			newRow = [];
+			targetArray.forEach(function(item2){
+				newRow.push(item2[i]);
 			});
-			reverseArray.push(column);
-		},this);
-
-		reverseArray.forEach(function(item){
-			console.log(item);
+			reverseArray.push(newRow);
 		});
 
 		return reverseArray;
 	}
 //Ф-ии для сдвига элементов массива
+	function setArrayShiftOptions(moveStraight){ //Rewrite
+		var options = {};
+		if(moveStraight){
+			options.startPoint = row.length - 1;
+			options.endPoint = 0;
+			options.step = -1;
+			options.check = function(cnt){
+				return cnt >= this.endPoint;
+			}
+		}else {
+			options.startPoint = 0;
+			options.endPoint = row.length - 1;
+			options.step = 1;
+			options.check = function (cnt) {
+				return cnt <= this.endPoint;
+			}
+		}
+		return options;
+	}
+
+
 	function moveElementsOfArray(targetObj,array,options){
 		var cnt,
 				startPoint = options.startPoint,
@@ -339,8 +375,8 @@
 //Ф-ия для проверки пустых строк
 
 	function printArray(array){
-		array.columnArray.forEach(function(item){
-			console.log(item.rowArray);
+		array.gameField.forEach(function(item){
+			console.log(item);
 		});
 	}
 
@@ -368,8 +404,8 @@
 				}
 				case 40:
 				{
-					gameField.moveVertically();
 					console.log("down");
+					gameField.moveVertically();
 					break;
 				}
 				case 37:
