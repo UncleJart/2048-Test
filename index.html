@@ -242,6 +242,41 @@
 		},this);
 		printArray(this);
 	};
+
+	GameField.prototype.moveVertically = function(moveStraight){
+		/*var reverseArray = [],
+			column;
+
+		this.columnArray[0].rowArray.forEach(function(_,i){
+			column = [];
+			this.columnArray.forEach(function(item){
+				column.push(item.rowArray[i]);
+			});
+			reverseArray.push(column);
+		},this);*/
+
+		reverseArray(this.columnArray,this.columnArray[0].rowArray);
+
+	};
+
+	function reverseArray(array1,array2){
+		var reverseArray = [],
+				column;
+
+		array2.forEach(function(_,i){
+			column = [];
+			array1.forEach(function(item){
+				column.push(item.rowArray[i]);
+			});
+			reverseArray.push(column);
+		},this);
+
+		reverseArray.forEach(function(item){
+			console.log(item);
+		});
+
+		return reverseArray;
+	}
 //Ф-ии для сдвига элементов массива
 	function moveElementsOfArray(targetObj,array,options){
 		var cnt,
@@ -328,10 +363,12 @@
 				case 38:
 				{
 					console.log("up");
+					gameField.moveVertically(true);
 					break;
 				}
 				case 40:
 				{
+					gameField.moveVertically();
 					console.log("down");
 					break;
 				}
