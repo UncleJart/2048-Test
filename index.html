@@ -139,16 +139,6 @@
 
 	};
 //Objects for creating Game Field
-	/*function RowArray(numOfRows,startValue){
-		var counter;
-
-		this.rowArray = [];
-
-		for(counter = 0; counter < numOfRows; counter++){
-			this.rowArray.push(startValue);
-		}
-	}*/
-
 	function GameField(numOfRows,numOfColumns,elementValues,numOfStartElements){
 		var cnt,cnt2,rowArray,
 			startValue = "";
@@ -157,6 +147,7 @@
 
 		this.gameField = [];
 		this.startValue = startValue;
+		this.gameFieldIsFull = false;
 		this.elementValues = new StartValues(elementValues);
 		this.numOfStartElelements = numOfStartElements;
 
@@ -180,7 +171,6 @@
 		}while(!this.checkIfElementIsEmpty(position));
 
 		this.gameField[column][row] = this.elementValues.getValue();
-
 		return position;
 
 	};
@@ -191,13 +181,14 @@
 		for(counter = 1; counter <= this.numOfStartElelements; counter++){
 			this.generateElement();
 		}
+
 		printArray(this);
 	};
 //Проверка на пустое поле, т.е. равно ли поле начальному значению
-	GameField.prototype.checkForEmptyGameField = function(){
+	GameField.prototype.checkForFullGameField = function(){
 		return this.gameField.every(function(item){
 			return item.every(function(item){
-				return item === this.startValue;
+				return item !== this.startValue;
 			},this);
 		},this);
 	};
@@ -209,7 +200,6 @@
 
 		position.push(getRoundedRandom(0,columns,true));
 		position.push(getRoundedRandom(0,rows,true));
-
 		return position;
 	};
 //Проверка на соответствие элемента начальному значению
@@ -220,80 +210,35 @@
 	};
 //Сдвиг элементов горизонтально (вправо или влево)
 	GameField.prototype.moveHorizontally = function(moveStraight){
-		this.gameField.forEach(function(item){
-			var row = item,
-				options = {};
-			if(moveStraight){
-				options.startPoint = row.length - 1;
-				options.endPoint = 0;
-				options.step = -1;
-				options.check = function(cnt){
-					return cnt >= this.endPoint;
-				}
-			}else{
-				options.startPoint = 0;
-				options.endPoint = row.length - 1;
-				options.step = 1;
-				options.check = function(cnt){
-					return cnt <= this.endPoint;
-				}
-			}
-
-			row = moveElementsOfArray(this,row,options);
-
-		},this);
+		if(!this.gameFieldIsFull){
+			moveGameField(this,moveStraight);
+			this.generateElement();
+			this.gameFieldIsFull = this.checkForFullGameField();
+		}
 		printArray(this);
 	};
 
 	GameField.prototype.moveVertically = function(moveStraight){
-		this.gameField = reverseArray(this.gameField);
-
-		this.gameField.forEach(function(item){
-			var row = item,
-					options = {};
-			if(!moveStraight){
-				options.startPoint = row.length - 1;
-				options.endPoint = 0;
-				options.step = -1;
-				options.check = function(cnt){
-					return cnt >= this.endPoint;
-				}
-			}else{
-				options.startPoint = 0;
-				options.endPoint = row.length - 1;
-				options.step = 1;
-				options.check = function(cnt){
-					return cnt <= this.endPoint;
-				}
-			}
-
-			row = moveElementsOfArray(this,row,options);
-
-		},this);
-
-		this.gameField = reverseArray(this.gameField);
-
+		if(!this.gameFieldIsFull){
+			this.gameField = reverseArray(this.gameField);
+			moveStraight = !moveStraight;
+			moveGameField(this,moveStraight);
+			this.gameField = reverseArray(this.gameField);
+			this.generateElement();
+			this.gameFieldIsFull = this.checkForFullGameField();
+		}
 		printArray(this);
-
-
 	};
 
-	function reverseArray(targetArray){
-		var reverseArray = [],
-			newRow;
-
-		targetArray[0].forEach(function(_,i){
-			newRow = [];
-			targetArray.forEach(function(item2){
-				newRow.push(item2[i]);
-			});
-			reverseArray.push(newRow);
+	function moveGameField(targetFieldObj,moveStraight){
+		targetFieldObj.gameField.forEach(function(item){
+			var row = item,
+				options = setArrayShiftOptions(moveStraight,row);
+			row = moveAndMergeElementsOfArray(targetFieldObj,row,options);
 		});
-
-		return reverseArray;
 	}
-//Ф-ии для сдвига элементов массива
-	function setArrayShiftOptions(moveStraight){ //Rewrite
+
+	function setArrayShiftOptions(moveStraight,row){
 		var options = {};
 		if(moveStraight){
 			options.startPoint = row.length - 1;
@@ -302,7 +247,7 @@
 			options.check = function(cnt){
 				return cnt >= this.endPoint;
 			}
-		}else {
+		}else{
 			options.startPoint = 0;
 			options.endPoint = row.length - 1;
 			options.step = 1;
@@ -312,52 +257,94 @@
 		}
 		return options;
 	}
+//Change array "rotation"
+	function reverseArray(targetArray){
+		var reverseArray = [],
+			newRow;
+		targetArray[0].forEach(function(_,i){
+			newRow = [];
+			targetArray.forEach(function(item2){
+				newRow.push(item2[i]);
+			});
+			reverseArray.push(newRow);
+		});
+		return reverseArray;
+	}
+//Ф-ии для сдвига элементов массива
+	function moveAndMergeElementsOfArray(targetObj,array,options){
+		var startValue = targetObj.startValue;
 
+		moveElementsOfArray(array,startValue,options);
+		mergeElementsOfArray(array,startValue,options);
 
-	function moveElementsOfArray(targetObj,array,options){
-		var cnt,
-				startPoint = options.startPoint,
-				endPoint = options.endPoint,
-				step = options.step,
-				startValue = targetObj.startValue,
-				lastEmptyElementPos = null;
-
-		for(cnt = startPoint; options.check(cnt); cnt += step){
-
-			lastEmptyElementPos = setStartEmptyElement(array,startValue,cnt,lastEmptyElementPos);
-
-			if(array[cnt] !== startValue && cnt !== startPoint){
-				if(lastEmptyElementPos !== null){
-					lastEmptyElementPos = getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElementPos);
-					array[lastEmptyElementPos] = array[cnt];
-					array[cnt] = targetObj.startValue;
-					lastEmptyElementPos = cnt;
-				}
-			}
-		}
 		return array;
 	}
 
-	function setStartEmptyElement(array,startValue,cnt,lastEmptyElementPos){
-		if(array[cnt] === startValue){
-			if(lastEmptyElementPos === null){
-				lastEmptyElementPos = cnt;
+	function moveElementsOfArray(array,startValue,options){
+		var startPoint = options.startPoint,
+				endPoint = options.endPoint,
+				step = options.step,
+				lastEmptyElPos = null,
+				cnt;
+
+		for(cnt = startPoint; options.check(cnt); cnt += step){
+			lastEmptyElPos = setStartEmptyElement(array,startValue,cnt,lastEmptyElPos);
+
+			if(array[cnt] !== startValue && cnt !== startPoint){
+				if(lastEmptyElPos !== null){
+					lastEmptyElPos = makeArrayReshuffle(startPoint,endPoint,array,cnt,startValue,lastEmptyElPos);
+				}
 			}
 		}
-		return lastEmptyElementPos;
 	}
 
-	function getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElementPos){
-		if(startPoint > endPoint) {
-			lastEmptyElementPos = checkForMultipleEmptyElements(array,startValue,lastEmptyElementPos,true);
-		}else{
-			lastEmptyElementPos = checkForMultipleEmptyElements(array,startValue,lastEmptyElementPos);
+	function mergeElementsOfArray(array,startValue,options){
+		var lastEmptyElPos = null,
+				startPoint = options.startPoint,
+				step = options.step,
+				cnt,mark;
+		for(cnt = startPoint; options.check(cnt); cnt += step) {
+			if(!mark){
+				if (array[cnt + 1]) {
+					if (array[cnt] === array[cnt + 1]) {
+						array[cnt] += array[cnt + 1];
+						array[cnt + 1] = startValue;
+						mark = !mark;
+					}
+				}
+			}
 		}
-		return lastEmptyElementPos;
+		moveElementsOfArray(array,startValue,options);
+	}
+
+	function makeArrayReshuffle(startPoint,endPoint,array,elPos,startValue,lastEmptyElPos){
+		lastEmptyElPos = getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElPos);
+		array[lastEmptyElPos] = array[elPos];
+		array[elPos] = startValue;
+		lastEmptyElPos = elPos;
+		return lastEmptyElPos;
+	}
+
+	function setStartEmptyElement(array,startValue,elPos,lastEmptyElPos){
+		if(array[elPos] === startValue){
+			if(lastEmptyElPos === null){
+				lastEmptyElPos = elPos;
+			}
+		}
+		return lastEmptyElPos;
+	}
+
+	function getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElPos){
+		if(startPoint > endPoint) {
+			lastEmptyElPos = getLastInRowEmptyElement(array,startValue,lastEmptyElPos,true);
+		}else{
+			lastEmptyElPos = getLastInRowEmptyElement(array,startValue,lastEmptyElPos);
+		}
+		return lastEmptyElPos;
 	}
 
 
-	function checkForMultipleEmptyElements(array,startValue,lastEmptyElementPos,moveStraight){
+	function getLastInRowEmptyElement(array,startValue,lastEmptyElPos,moveStraight){
 		var step;
 
 		if(moveStraight){//Тернарный оператор не сработал
@@ -365,11 +352,11 @@
 		}else{
 			step = -1;
 		}
-		while(array[lastEmptyElementPos] === startValue){
-			lastEmptyElementPos += step;
+		while(array[lastEmptyElPos] === startValue){
+			lastEmptyElPos += step;
 		}
-		lastEmptyElementPos -= step;
-		return lastEmptyElementPos;
+		lastEmptyElPos -= step;
+		return lastEmptyElPos;
 	}
 
 //Ф-ия для проверки пустых строк
@@ -380,48 +367,74 @@
 		});
 	}
 
+	function handleKeyCode(gameField,keyCode,moveStraight){
+		switch(keyCode) {
+			case 38:
+			{
+				console.log("up");
+				gameField.moveVertically(moveStraight);
+				break;
+			}
+			case 40:
+			{
+				console.log("down");
+				gameField.moveVertically(moveStraight);
+				break;
+			}
+			case 37:
+			{
+				console.log("left");
+				gameField.moveHorizontally(moveStraight);
+				break;
+			}
+			case 39:
+			{
+				console.log("right");
+				gameField.moveHorizontally(moveStraight);
+				break;
+			}
+		}
+	}
+
 	function startGame(){
 		var startOptions = {
 			values : [2,4],
 			probability :[0.9,0.1]
 			},
-			gameField = new GameField(4,4,startOptions,8);  //---> to 2
+			getDirection = null,
+			gameOver = false;
 
-		console.log(gameField.generateStartElements());
+		function init(){
+			var gameField = new GameField(4,4,startOptions,2);  //---> to 2
 
+			gameField.generateStartElements();
+			getDirection = document.addEventListener("keyup",keyListener);
 
-		document.addEventListener("keyup",function(event){
-			var keyCode = event.keyCode;
+			function keyListener(event){ //Must be swipeLeft/swipeRight
+				var keyCode = event.keyCode,
+						moveStraight;
 
-			event.preventDefault();
+				event.preventDefault();
 
-			switch(keyCode) {
-				case 38:
-				{
-					console.log("up");
-					gameField.moveVertically(true);
-					break;
+				if(keyCode === 38 || keyCode === 39){
+					moveStraight = true;
 				}
-				case 40:
-				{
-					console.log("down");
-					gameField.moveVertically();
-					break;
-				}
-				case 37:
-				{
-					console.log("left");
-					gameField.moveHorizontally();
-					break;
-				}
-				case 39:
-				{
-					console.log("right");
-					gameField.moveHorizontally(true);
-					break;
+
+				handleKeyCode(gameField,keyCode,moveStraight);
+
+				if (gameField.gameFieldIsFull){
+					getDirection = document.removeEventListener("keyup",keyListener);
+
+					document.onclick = function(event){
+						if(event){
+							startGame();
+						}
+					}
 				}
 			}
-		});
+		}
+
+		init();
 	}
 
 	startGame();
