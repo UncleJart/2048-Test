@@ -135,7 +135,7 @@
 			return prev + curr;
 		},0);
 
-		return startValue;
+		return startValue; // not needed
 
 	};
 //Objects for creating Game Field
@@ -151,42 +151,21 @@
 		this.gameFieldIsFull = false;
 		this.elementValues = new StartValues(elementValues);
 		this.numOfStartElelements = numOfStartElements;
-		this.displayArray = new Array(numOfElements);
-
-		for(cnt = 0; cnt < numOfElements; cnt++){       //rewrite
-			this.displayArray[cnt] = {
-				x: 0,
-				y: 0,
-				value: this.startValue
-			};
-		}
 
 		for(cnt = 0; cnt < numOfColumns; cnt++){        //rewrite
 			rowArray = [];
 			for(cnt2 = 0; cnt2 < numOfRows; cnt2++){
-				gFieldEl = {};
-				gFieldEl.value = startValue;
-				gFieldEl.dArrayPos = null;
+				gFieldEl = {
+					value : startValue,
+					x: null,
+					y: null
+				};
 				rowArray.push(gFieldEl);
 			}
 			this.gameField.push(rowArray);
 		}
 	}
 //Methods of Game Field
-
-//Методы для массива отображения
-
-	GameField.prototype.getEmptyDisplayArrayElementIndex = function(){
-		var cnt;
-
-		for(cnt = 0; cnt < this.displayArray.length; cnt++){
-			if(this.displayArray[cnt].value === this.startValue){
-				break;
-			}
-		}
-		return cnt;
-	};
-
 //Генерация элемента
 	GameField.prototype.generateElement = function(){
 		var position,column,row,index;
@@ -201,12 +180,8 @@
 
 		//code to obtain element position
 
-		index = this.getEmptyDisplayArrayElementIndex();
-		this.displayArray[index].x = column;
-		this.displayArray[index].y = row;
-		this.displayArray[index].value = this.gameField[column][row];
-
-		this.gameField[column][row].dArrayPos = index;
+		this.gameField[column][row].x = row;
+		this.gameField[column][row].y = column;
 
 		return position;
 	};
@@ -266,11 +241,11 @@
 		printArray(this);
 	};
 
-	function moveGameField(targetFieldObj,moveStraight){
-		targetFieldObj.gameField.forEach(function(item){
+	function moveGameField(targetFieldObj,moveStraight){    //add column
+		targetFieldObj.gameField.forEach(function(item,column){
 			var row = item,
 				options = setArrayShiftOptions(moveStraight,row);
-			row = moveAndMergeElementsOfArray(targetFieldObj,row,options);
+			moveAndMergeElementsOfArray(targetFieldObj,column,row,options);
 		});
 	}
 
@@ -307,63 +282,68 @@
 		return reverseArray;
 	}
 //Ф-ии для сдвига элементов массива
-	function moveAndMergeElementsOfArray(targetObj,array,options){
+	function moveAndMergeElementsOfArray(targetObj,column,row,options){
 		var startValue = targetObj.startValue;
 
-		moveElementsOfArray(array,startValue,options);
-		mergeElementsOfArray(array,startValue,options);
+		moveElementsOfArray(column,row,startValue,options);
+		mergeElementsOfArray(column,row,startValue,options);
 
-		return array;
+		return row;
 	}
 
-	function moveElementsOfArray(array,startValue,options){
+	function moveElementsOfArray(column,row,startValue,options){
 		var startPoint = options.startPoint,
-				endPoint = options.endPoint,
-				step = options.step,
-				lastEmptyElPos = null,
-				cnt;
+			step = options.step,
+			lastEmptyElPos = null,
+			cnt;
 
 		for(cnt = startPoint; options.check(cnt); cnt += step){
-			lastEmptyElPos = setStartEmptyElement(array,startValue,cnt,lastEmptyElPos);
+			lastEmptyElPos = setStartEmptyElement(row,startValue,cnt,lastEmptyElPos);
 
-			if(array[cnt].value !== startValue && cnt !== startPoint){
+			if(row[cnt].value !== startValue && cnt !== startPoint){
 				if(lastEmptyElPos !== null){
-					lastEmptyElPos = makeArrayReshuffle(startPoint,endPoint,array,cnt,startValue,lastEmptyElPos);
+					lastEmptyElPos = makeArrayReshuffle(column,row,cnt,startValue,lastEmptyElPos,options);
 				}
 			}
 		}
 	}
 
-	function mergeElementsOfArray(array,startValue,options){
+	function mergeElementsOfArray(column,row,startValue,options){
 		var startPoint = options.startPoint,
 			step = options.step,
 			cnt,mark;
 		for(cnt = startPoint; options.check(cnt); cnt += step) {
-			if(!mark){
-				if (array[cnt + 1]) {
-					if (array[cnt].value === array[cnt + 1].value) {
-						array[cnt].value += array[cnt + 1].value;
-						array[cnt + 1].value = startValue;
-						mark = !mark;
-					}
+			if(row[cnt].value !== startValue && row[cnt + 1]){
+				if(!mark && row[cnt].value === row[cnt + 1].value) {
+					row[cnt].value += row[cnt + 1].value;
+					row[cnt + 1].value = startValue;
+					row[cnt + 1].x = null; //change to -1
+					row[cnt + 1].y = null; //change to -1
+					mark = !mark;
+				}
+				if(mark && row[cnt].value !== row[cnt + 1].value){
+					mark = !mark;
 				}
 			}
 		}
-		moveElementsOfArray(array,startValue,options);
+		moveElementsOfArray(column,row,startValue,options);
 	}
 
-	function makeArrayReshuffle(startPoint,endPoint,array,elPos,startValue,lastEmptyElPos){
-		lastEmptyElPos = getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElPos);
-		array[lastEmptyElPos].value = array[elPos].value;
-		array[lastEmptyElPos].dArrayPos = array[elPos].dArrayPos;
-		array[elPos].value = startValue;
-		array[elPos].dArrayPos = null;
+	function makeArrayReshuffle(column,row,elPos,startValue,lastEmptyElPos,options){
+
+		lastEmptyElPos = getLatestEmptyElementPos(row,startValue,lastEmptyElPos,options);
+		row[lastEmptyElPos].value = row[elPos].value;
+		row[lastEmptyElPos].x = column;
+		row[lastEmptyElPos].y = lastEmptyElPos;
+		row[elPos].value = startValue;
+		row[elPos].x = null;
+		row[elPos].y = null;
 		lastEmptyElPos = elPos;
 		return lastEmptyElPos;
 	}
 
-	function setStartEmptyElement(array,startValue,elPos,lastEmptyElPos){
-		if(array[elPos].value === startValue){
+	function setStartEmptyElement(row,startValue,elPos,lastEmptyElPos){
+		if(row[elPos].value === startValue){
 			if(lastEmptyElPos === null){
 				lastEmptyElPos = elPos;
 			}
@@ -371,25 +351,23 @@
 		return lastEmptyElPos;
 	}
 
-	function getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElPos){
+	function getLatestEmptyElementPos(row,startValue,lastEmptyElPos,options){
+		var startPoint = options.startPoint,
+			endPoint = options.endPoint;
+
 		if(startPoint > endPoint) {
-			lastEmptyElPos = getLastInRowEmptyElement(array,startValue,lastEmptyElPos,true);
+			lastEmptyElPos = getLastInRowEmptyElement(row,startValue,lastEmptyElPos,true);
 		}else{
-			lastEmptyElPos = getLastInRowEmptyElement(array,startValue,lastEmptyElPos,false);
+			lastEmptyElPos = getLastInRowEmptyElement(row,startValue,lastEmptyElPos,false);
 		}
 		return lastEmptyElPos;
 	}
 
 
-	function getLastInRowEmptyElement(array,startValue,lastEmptyElPos,moveStraight){
-		var step;
+	function getLastInRowEmptyElement(row,startValue,lastEmptyElPos,moveStraight){
+		var step = moveStraight ? 1 : -1;
 
-		if(moveStraight){//Тернарный оператор не сработал
-			step = 1;
-		}else{
-			step = -1;
-		}
-		while(array[lastEmptyElPos] && array[lastEmptyElPos].value === startValue){
+		while(row[lastEmptyElPos] && row[lastEmptyElPos].value === startValue){
 			lastEmptyElPos += step;
 		}
 		lastEmptyElPos -= step;
@@ -403,6 +381,12 @@
 		array.gameField.forEach(function(item){
 			item.forEach(function(item){
 				str+= "\""+item.value+"\"\t";
+			});
+			str += "\n";
+		});
+		array.gameField.forEach(function(item){ //remove later
+			item.forEach(function(item){
+				str+= "\""+item.x+","+item.y+"\"\t";
 			});
 			str += "\n";
 		});
