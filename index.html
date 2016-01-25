@@ -103,6 +103,12 @@
 			return 0;
 		}
 	}
+
+	function compareArrays(array1,array2){
+		return array1.every(function(item,i){
+			return array1[i] === array2[i];
+		});
+	}
 //Constructors
 	function StartValues(options){
 		this.startValues = [];
@@ -141,8 +147,7 @@
 //Objects for creating Game Field
 	function GameField(numOfRows,numOfColumns,elementValues,numOfStartElements){
 		var cnt,cnt2,rowArray,gFieldEl,
-			startValue = "",
-			numOfElements = numOfRows * numOfColumns;
+			startValue = "";
 
 		numOfStartElements = numOfStartElements || 2;
 
@@ -168,7 +173,7 @@
 //Methods of Game Field
 //Генерация элемента
 	GameField.prototype.generateElement = function(){
-		var position,column,row,index;
+		var position,column,row;
 
 		do{
 			position = this.generateElementPosition();
@@ -229,7 +234,7 @@
 		printArray(this);
 	};
 
-	GameField.prototype.moveVertically = function(moveStraight){
+	GameField.prototype.moveVertically = function(moveStraight){ //Add check for not changed gamefield
 		if(!this.gameFieldIsFull){
 			this.gameField = reverseArray(this.gameField);
 			moveStraight = !moveStraight;
