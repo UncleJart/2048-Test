@@ -140,8 +140,9 @@
 	};
 //Objects for creating Game Field
 	function GameField(numOfRows,numOfColumns,elementValues,numOfStartElements){
-		var cnt,cnt2,rowArray,
-			startValue = "";
+		var cnt,cnt2,rowArray,gFieldEl,
+			startValue = "",
+			numOfElements = numOfRows * numOfColumns;
 
 		numOfStartElements = numOfStartElements || 2;
 
@@ -150,19 +151,45 @@
 		this.gameFieldIsFull = false;
 		this.elementValues = new StartValues(elementValues);
 		this.numOfStartElelements = numOfStartElements;
+		this.displayArray = new Array(numOfElements);
 
-		for(cnt = 0; cnt < numOfColumns; cnt++){
+		for(cnt = 0; cnt < numOfElements; cnt++){       //rewrite
+			this.displayArray[cnt] = {
+				x: 0,
+				y: 0,
+				value: this.startValue
+			};
+		}
+
+		for(cnt = 0; cnt < numOfColumns; cnt++){        //rewrite
 			rowArray = [];
 			for(cnt2 = 0; cnt2 < numOfRows; cnt2++){
-				rowArray.push(startValue);
+				gFieldEl = {};
+				gFieldEl.value = startValue;
+				gFieldEl.dArrayPos = null;
+				rowArray.push(gFieldEl);
 			}
 			this.gameField.push(rowArray);
 		}
 	}
 //Methods of Game Field
+
+//Методы для массива отображения
+
+	GameField.prototype.getEmptyDisplayArrayElementIndex = function(){
+		var cnt;
+
+		for(cnt = 0; cnt < this.displayArray.length; cnt++){
+			if(this.displayArray[cnt].value === this.startValue){
+				break;
+			}
+		}
+		return cnt;
+	};
+
 //Генерация элемента
 	GameField.prototype.generateElement = function(){
-		var position,column,row;
+		var position,column,row,index;
 
 		do{
 			position = this.generateElementPosition();
@@ -170,9 +197,18 @@
 			row = position[1];
 		}while(!this.checkIfElementIsEmpty(position));
 
-		this.gameField[column][row] = this.elementValues.getValue();
-		return position;
+		this.gameField[column][row].value = this.elementValues.getValue();
 
+		//code to obtain element position
+
+		index = this.getEmptyDisplayArrayElementIndex();
+		this.displayArray[index].x = column;
+		this.displayArray[index].y = row;
+		this.displayArray[index].value = this.gameField[column][row];
+
+		this.gameField[column][row].dArrayPos = index;
+
+		return position;
 	};
 //Генерация стартовых элементов
 	GameField.prototype.generateStartElements = function(){
@@ -188,7 +224,7 @@
 	GameField.prototype.checkForFullGameField = function(){
 		return this.gameField.every(function(item){
 			return item.every(function(item){
-				return item !== this.startValue;
+				return item.value !== this.startValue;
 			},this);
 		},this);
 	};
@@ -206,7 +242,7 @@
 	GameField.prototype.checkIfElementIsEmpty = function(position){
 		var column = position[0],
 			row = position[1];
-		return this.gameField[column][row] === this.startValue;
+		return this.gameField[column][row].value === this.startValue;
 	};
 //Сдвиг элементов горизонтально (вправо или влево)
 	GameField.prototype.moveHorizontally = function(moveStraight){
@@ -290,7 +326,7 @@
 		for(cnt = startPoint; options.check(cnt); cnt += step){
 			lastEmptyElPos = setStartEmptyElement(array,startValue,cnt,lastEmptyElPos);
 
-			if(array[cnt] !== startValue && cnt !== startPoint){
+			if(array[cnt].value !== startValue && cnt !== startPoint){
 				if(lastEmptyElPos !== null){
 					lastEmptyElPos = makeArrayReshuffle(startPoint,endPoint,array,cnt,startValue,lastEmptyElPos);
 				}
@@ -299,16 +335,15 @@
 	}
 
 	function mergeElementsOfArray(array,startValue,options){
-		var lastEmptyElPos = null,
-				startPoint = options.startPoint,
-				step = options.step,
-				cnt,mark;
+		var startPoint = options.startPoint,
+			step = options.step,
+			cnt,mark;
 		for(cnt = startPoint; options.check(cnt); cnt += step) {
 			if(!mark){
 				if (array[cnt + 1]) {
-					if (array[cnt] === array[cnt + 1]) {
-						array[cnt] += array[cnt + 1];
-						array[cnt + 1] = startValue;
+					if (array[cnt].value === array[cnt + 1].value) {
+						array[cnt].value += array[cnt + 1].value;
+						array[cnt + 1].value = startValue;
 						mark = !mark;
 					}
 				}
@@ -319,14 +354,16 @@
 
 	function makeArrayReshuffle(startPoint,endPoint,array,elPos,startValue,lastEmptyElPos){
 		lastEmptyElPos = getLatestEmptyElementPos(startPoint,endPoint,array,startValue,lastEmptyElPos);
-		array[lastEmptyElPos] = array[elPos];
-		array[elPos] = startValue;
+		array[lastEmptyElPos].value = array[elPos].value;
+		array[lastEmptyElPos].dArrayPos = array[elPos].dArrayPos;
+		array[elPos].value = startValue;
+		array[elPos].dArrayPos = null;
 		lastEmptyElPos = elPos;
 		return lastEmptyElPos;
 	}
 
 	function setStartEmptyElement(array,startValue,elPos,lastEmptyElPos){
-		if(array[elPos] === startValue){
+		if(array[elPos].value === startValue){
 			if(lastEmptyElPos === null){
 				lastEmptyElPos = elPos;
 			}
@@ -338,7 +375,7 @@
 		if(startPoint > endPoint) {
 			lastEmptyElPos = getLastInRowEmptyElement(array,startValue,lastEmptyElPos,true);
 		}else{
-			lastEmptyElPos = getLastInRowEmptyElement(array,startValue,lastEmptyElPos);
+			lastEmptyElPos = getLastInRowEmptyElement(array,startValue,lastEmptyElPos,false);
 		}
 		return lastEmptyElPos;
 	}
@@ -352,7 +389,7 @@
 		}else{
 			step = -1;
 		}
-		while(array[lastEmptyElPos] === startValue){
+		while(array[lastEmptyElPos] && array[lastEmptyElPos].value === startValue){
 			lastEmptyElPos += step;
 		}
 		lastEmptyElPos -= step;
@@ -362,9 +399,14 @@
 //Ф-ия для проверки пустых строк
 
 	function printArray(array){
+		var str = "";
 		array.gameField.forEach(function(item){
-			console.log(item);
+			item.forEach(function(item){
+				str+= "\""+item.value+"\"\t";
+			});
+			str += "\n";
 		});
+		console.log(str);
 	}
 
 	function handleKeyCode(gameField,keyCode,moveStraight){
