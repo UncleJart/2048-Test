@@ -229,7 +229,10 @@
 				gFieldEl = {
 					value : startValue,
 					x: null,
-					y: null
+					y: null,
+					xPrev: null,
+					yPrev: null,
+					new: false
 				};
 				rowArray.push(gFieldEl);
 			}
@@ -253,6 +256,7 @@
 
 		this.gameField[column][row].x = row;
 		this.gameField[column][row].y = column;
+		this.gameField[column][row].new = true;
 
 		return position;
 	};
@@ -305,9 +309,12 @@
 	GameField.prototype.reverseCoordinates = function(){
 		this.gameField.forEach(function(row){
 			row.forEach(function(item,i,array){
-				var x = item.x;
+				var x = item.x,
+					xPrev = item.xPrev;
 				array[i].x = item.y;
 				array[i].y = x;
+				array[i].xPrev = item.yPrev;
+				array[i].yPrev = xPrev;
 			});
 		});
 	};
@@ -435,11 +442,15 @@
 
 		lastEmptyElPos = getLatestEmptyElementPos(row,startValue,lastEmptyElPos,options);
 		row[lastEmptyElPos].value = row[elPos].value;
+		row[lastEmptyElPos].xPrev = row[lastEmptyElPos].x;
+		row[lastEmptyElPos].yPrev = row[lastEmptyElPos].y;
 		row[lastEmptyElPos].x = column;
 		row[lastEmptyElPos].y = lastEmptyElPos;
 		row[elPos].value = startValue;
 		row[elPos].x = null;
 		row[elPos].y = null;
+		row[elPos].xPrev = null;
+		row[elPos].yPrev = null;
 		lastEmptyElPos = elPos;
 		return lastEmptyElPos;
 	}
@@ -561,8 +572,16 @@
 		gFieldList.forEach(function(rowArr,i){
 			var column = gameFieldObj.gameField[i];
 			rowArr.forEach(function(item,index){
-				var row = column[index];
-				item.style.transform = "translateX("+row.x * step + "px) translateY("+row.y * step + "px)";
+				var row = column[index],
+					position;
+				item.style.transition = "";
+				position = "translateX("+row.x * step + "px) translateY("+row.y * step + "px)"; //add some code to make transition work like it should
+				item.style.transform = position;
+				if(row.new){
+					row.new = !row.new;
+				}else{
+					//item.style.transition = "transform .2s linear";
+				}
 			});
 		});
 	}
@@ -630,7 +649,7 @@
 				gameFieldElement = document.getElementById("gameField"),
 				gFieldList = [];
 
-			createGameFieldElementsArray(gFieldList,gameFieldElement);
+			createGameFieldElementsArray(gFieldList,gameFieldElement);  //======>>>>>>> Creating DOM Elements GameField Array
 
 			gameField.generateStartElements();
 			drawGameField(gFieldList,gameField);  //first launch
