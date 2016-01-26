@@ -12,55 +12,113 @@
 		background-color: lightgrey;
 	}
 
-	.game-field{
+	.gamefield{
 		margin: auto;
-		display: flex;
-		flex-flow: column wrap;
-		justify-content: space-around;
-		width: 480px;
-		height: 480px;
+		width: 500px;
+		height: 500px;
+		position: relative;
+		border: 1px solid #000000;
+	}
+
+	.wrapper{
+		position: absolute;
+		top: 20px;
+		left: 20px;
+		height: 460px;
 	}
 
 	.column{
+		width: 460px;
+	}
+
+	.background-wrapper{
+		display: flex;
+		flex-flow: column wrap;
+		justify-content: space-between;
+	}
+
+	.background-wrapper .column{
 		display: flex;
 		flex-flow: row nowrap;
-		width: 480px;
-		justify-content: space-around;
+		justify-content: space-between;
+	}
+
+	.elements-wrapper .column{
+		display: block;
 	}
 
 	.square{
-		border: 1px solid black;
 		width: 100px;
 		height: 100px;
-		background-color: grey;
+	}
+
+	.background-wrapper .square{
+		background-color: #CDC1B4;
+	}
+
+	.elements-wrapper .square{
+		position: absolute;
+		background-color: transparent;
+		text-align: center;
+		vertical-align: middle;
+		color: #FFFFFF;
+		font: 900 normal 2em/100px Arial;
 	}
 </style>
 <body>
 	<article class="slide">
-		<div id="gameField" class="game-field">
-			<div class="column">
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
+		<div class="gamefield">
+			<div class="background-wrapper wrapper">
+				<div class="column">
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+				</div>
+				<div class="column">
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+				</div>
+				<div class="column">
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+				</div>
+				<div class="column">
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+					<div class="square"></div>
+				</div>
 			</div>
-			<div class="column">
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
-			</div>
-			<div class="column">
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
-			</div>
-			<div class="column">
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
-				<div class="square"></div>
+			<div class="elements-wrapper wrapper" id="gameField">
+				<div class="column">
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+				</div>
+				<div class="column">
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+				</div>
+				<div class="column">
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+				</div>
+				<div class="column">
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+					<div class="square element"></div>
+				</div>
 			</div>
 		</div>
 	</article>
@@ -107,6 +165,14 @@
 	function compareArrays(array1,array2){
 		return array1.every(function(item,i){
 			return array1[i] === array2[i];
+		});
+	}
+
+	function convertNodeListToArray(nodeList,htmlElementType,resArray){
+		Array.prototype.forEach.call(nodeList,function(item){
+			if (item instanceof htmlElementType){
+				resArray.push(item);
+			}
 		});
 	}
 //Constructors
@@ -458,6 +524,99 @@
 		}
 	}
 
+//Functions for work with DOM ======>>>>>>> future binder
+	function createGameFieldElementsArray(gFieldElList,parentNode){
+		var gFieldColumnElList = [],
+			columnElements = parentNode.childNodes;
+
+		convertNodeListToArray(columnElements,HTMLDivElement,gFieldColumnElList);
+
+		gFieldColumnElList.forEach(function(item,i){
+			var rowElements = item.childNodes,
+				rowArr = [];
+
+			gFieldElList.push(rowArr);
+			convertNodeListToArray(rowElements,HTMLDivElement,gFieldElList[i]);
+		});
+	}
+
+	function setGameFieldValues(gFieldList,gameFieldObj){
+		gFieldList.forEach(function(rowArr,i){
+			var column = gameFieldObj.gameField[i];
+			rowArr.forEach(function(item,index){
+				var row = column[index];
+				item.innerHTML = row.value;
+			});
+		});
+	}
+
+	function setGameFieldElCoordinates(gFieldList,gameFieldObj){ //fix smth about height of gamefield, mb attributes must be set from Javascript
+		var firstGFieldEl = gFieldList[0][0],
+			numOfElInRow = gFieldList[0].length,
+			parentNode = firstGFieldEl.parentNode,
+			rowWidth = getOnlyDigitsFromCSSProperty(parentNode,"width"),
+			elWidth = getOnlyDigitsFromCSSProperty(firstGFieldEl,"width"),
+			step = elWidth + ((rowWidth - (elWidth * numOfElInRow)) / (numOfElInRow - 1));
+
+		gFieldList.forEach(function(rowArr,i){
+			var column = gameFieldObj.gameField[i];
+			rowArr.forEach(function(item,index){
+				var row = column[index];
+				item.style.transform = "translateX("+row.x * step + "px) translateY("+row.y * step + "px)";
+			});
+		});
+	}
+
+	function setGameFiledElColor(gFieldList,gameFieldObj){
+		var color;
+
+		gFieldList.forEach(function(rowArr,i){
+			var column = gameFieldObj.gameField[i];
+			rowArr.forEach(function(item,index){
+				var row = column[index];
+				color = setElementColor(row.value);
+				item.style.backgroundColor = color;
+			});
+		});
+	}
+
+	function setElementColor(elValue){
+		var colors = ["#EEE4DA","#EDE0C8","#F2B179","#F59563","#F67C5F","#F65E3B","#EDCF72","#EDBF32"],
+			colorsLength = colors.length,
+			colorIndex,
+			log2Value;
+		if(!elValue){
+			return "transparent";
+		}else{
+			log2Value = Math.log2(elValue);
+		}
+		if (log2Value <= colorsLength){
+			colorIndex = log2Value - 1;
+		}else{
+			colorIndex = log2Value % colorsLength;
+			if(!(log2Value % colorsLength)){
+				colorIndex = colorsLength - 1;
+			}else{
+				colorIndex--;
+			}
+		}
+		return colors[colorIndex];
+	}
+
+	function drawGameField(gFieldList,gameFieldObj){ //add needed functions
+		setGameFieldValues(gFieldList,gameFieldObj);
+		setGameFieldElCoordinates(gFieldList,gameFieldObj);
+		setGameFiledElColor(gFieldList,gameFieldObj);
+	}
+
+	function getOnlyDigitsFromCSSProperty(element,property){
+		var regExp = /[0-9]/gi,
+			propertyValue = window.getComputedStyle(element,null)[property];
+
+		return Number(propertyValue.match(regExp).join(""));
+	}
+
+
 	function startGame(){
 		var startOptions = {
 			values : [2,4],
@@ -467,10 +626,16 @@
 			gameOver = false;
 
 		function init(){
-			var gameField = new GameField(4,4,startOptions,2);  //---> to 2
+			var gameField = new GameField(4,4,startOptions,2),  //=========>>>>>>>>>> Place to change gamefield dimensions and number of start elements
+				gameFieldElement = document.getElementById("gameField"),
+				gFieldList = [];
+
+			createGameFieldElementsArray(gFieldList,gameFieldElement);
 
 			gameField.generateStartElements();
+			drawGameField(gFieldList,gameField);  //first launch
 			getDirection = document.addEventListener("keyup",keyListener);
+
 
 			function keyListener(event){ //Must be swipeLeft/swipeRight
 				var keyCode = event.keyCode,
@@ -483,6 +648,8 @@
 				}
 
 				handleKeyCode(gameField,keyCode,moveStraight);
+
+				drawGameField(gFieldList,gameField);
 
 				if (gameField.gameFieldIsFull){
 					getDirection = document.removeEventListener("keyup",keyListener);
