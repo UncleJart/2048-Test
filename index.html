@@ -224,23 +224,54 @@
 			row = position[1];
 		return this.gameField[column][row].value === this.startValue;
 	};
+//Получить значения игрового поля
+	GameField.prototype.getValues = function(){
+		var values = [];
+		this.gameField.forEach(function(row){
+			row.forEach(function(item){
+				values.push(item.value);
+			});
+		});
+
+		return values;
+	};
+
+	GameField.prototype.reverseCoordinates = function(){
+		this.gameField.forEach(function(row){
+			row.forEach(function(item,i,array){
+				var x = item.x;
+				array[i].x = item.y;
+				array[i].y = x;
+			});
+		});
+	};
 //Сдвиг элементов горизонтально (вправо или влево)
 	GameField.prototype.moveHorizontally = function(moveStraight){
+		var gFieldValues;
 		if(!this.gameFieldIsFull){
+			gFieldValues = this.getValues();
+			this.reverseCoordinates();
 			moveGameField(this,moveStraight);
-			this.generateElement();
+			this.reverseCoordinates();
+			if(!compareArrays(gFieldValues,this.getValues())){
+				this.generateElement();
+			}
 			this.gameFieldIsFull = this.checkForFullGameField();
 		}
 		printArray(this);
 	};
 
 	GameField.prototype.moveVertically = function(moveStraight){ //Add check for not changed gamefield
+		var gFieldValues;
 		if(!this.gameFieldIsFull){
+			gFieldValues = this.getValues();
 			this.gameField = reverseArray(this.gameField);
 			moveStraight = !moveStraight;
 			moveGameField(this,moveStraight);
 			this.gameField = reverseArray(this.gameField);
-			this.generateElement();
+			if(!compareArrays(gFieldValues,this.getValues())){
+				this.generateElement();
+			}
 			this.gameFieldIsFull = this.checkForFullGameField();
 		}
 		printArray(this);
