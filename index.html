@@ -64,6 +64,36 @@
 		color: #FFFFFF;
 		font: 900 normal 2em/100px Arial;
 	}
+
+	.new-el-animation{
+		animation: newElement .1s linear;
+	}
+
+	.inc-el-animation{
+		animation: incElement .1s linear;
+	}
+
+	.transition{
+		transition: transform .1s linear;
+	}
+	
+	@keyframes newElement {
+		from{
+			transform: scale(0);
+		}
+		to{
+			transform: scale(1);
+		}
+	}
+
+	@keyframes incElement {
+		from{
+			transform: scale(1.5);
+		}
+		to{
+			transform: scale(1);
+		}
+	}
 </style>
 <body>
 	<article class="slide">
@@ -232,7 +262,8 @@
 					y: null,
 					xPrev: null,
 					yPrev: null,
-					new: false
+					new: false,
+					inc: false
 				};
 				rowArray.push(gFieldEl);
 			}
@@ -323,6 +354,7 @@
 		var gFieldValues;
 		if(!this.gameFieldIsFull){
 			gFieldValues = this.getValues();
+			this.savePreviousPositions();
 			this.reverseCoordinates();
 			moveGameField(this,moveStraight);
 			this.reverseCoordinates();
@@ -331,6 +363,7 @@
 			}
 			this.gameFieldIsFull = this.checkForFullGameField();
 		}
+		//debugger;
 		printArray(this);
 	};
 
@@ -338,6 +371,7 @@
 		var gFieldValues;
 		if(!this.gameFieldIsFull){
 			gFieldValues = this.getValues();
+			this.savePreviousPositions();
 			this.gameField = reverseArray(this.gameField);
 			moveStraight = !moveStraight;
 			moveGameField(this,moveStraight);
@@ -347,7 +381,17 @@
 			}
 			this.gameFieldIsFull = this.checkForFullGameField();
 		}
+		//debugger;
 		printArray(this);
+	};
+
+	GameField.prototype.savePreviousPositions = function(){
+		this.gameField.forEach(function(row){
+			row.forEach(function(item,i,array){
+				item.xPrev = item.x;
+				item.yPrev = item.y;
+			});
+		});
 	};
 
 	function moveGameField(targetFieldObj,moveStraight){    //add column
@@ -414,6 +458,7 @@
 					lastEmptyElPos = makeArrayReshuffle(column,row,cnt,startValue,lastEmptyElPos,options);
 				}
 			}
+
 		}
 	}
 
@@ -423,14 +468,19 @@
 			cnt,mark;
 		for(cnt = startPoint; options.check(cnt); cnt += step) {
 			if(row[cnt].value !== startValue && row[cnt + 1]){
-				if(!mark && row[cnt].value === row[cnt + 1].value) {
+				if(!mark && row[cnt].value === row[cnt + 1].value){
 					row[cnt].value += row[cnt + 1].value;
+					row[cnt].inc = true;
 					row[cnt + 1].value = startValue;
 					row[cnt + 1].x = null; //change to -1
 					row[cnt + 1].y = null; //change to -1
+					row[cnt + 1].xPrev = null;  //??
+					row[cnt + 1].yPrev = null;  //??
+					row[cnt + 1].new = false;   //Add some check or variable for changed element
+					row[cnt + 1].inc = false;   //Add some check or variable for changed element
 					mark = !mark;
 				}
-				if(mark && row[cnt].value !== row[cnt + 1].value){
+				if(mark && row[cnt].value !== row[cnt + 1].value){  //Rewrite - makes sum of three element in a row and two the same ====>>>???
 					mark = !mark;
 				}
 			}
@@ -442,8 +492,8 @@
 
 		lastEmptyElPos = getLatestEmptyElementPos(row,startValue,lastEmptyElPos,options);
 		row[lastEmptyElPos].value = row[elPos].value;
-		row[lastEmptyElPos].xPrev = row[lastEmptyElPos].x;
-		row[lastEmptyElPos].yPrev = row[lastEmptyElPos].y;
+		row[lastEmptyElPos].xPrev = row[elPos].xPrev;   //не учитывается мердж
+		row[lastEmptyElPos].yPrev = row[elPos].yPrev;   //maybe rewrite for object copy
 		row[lastEmptyElPos].x = column;
 		row[lastEmptyElPos].y = lastEmptyElPos;
 		row[elPos].value = startValue;
@@ -497,9 +547,17 @@
 			});
 			str += "\n";
 		});
+		str += "\n";
 		array.gameField.forEach(function(item){ //remove later
 			item.forEach(function(item){
 				str+= "\""+item.x+","+item.y+"\"\t";
+			});
+			str += "\n";
+		});
+		str += "\n";
+		array.gameField.forEach(function(item){ //remove later
+			item.forEach(function(item){
+				str+= "\""+item.xPrev+","+item.yPrev+"\"\t";
 			});
 			str += "\n";
 		});
@@ -570,23 +628,55 @@
 			step = elWidth + ((rowWidth - (elWidth * numOfElInRow)) / (numOfElInRow - 1));
 
 		gFieldList.forEach(function(rowArr,i){
-			var column = gameFieldObj.gameField[i];
+			var row = gameFieldObj.gameField[i];
 			rowArr.forEach(function(item,index){
-				var row = column[index],
-					position;
-				item.style.transition = "";
-				position = "translateX("+row.x * step + "px) translateY("+row.y * step + "px)"; //add some code to make transition work like it should
-				item.style.transform = position;
-				if(row.new){
-					row.new = !row.new;
-				}else{
-					//item.style.transition = "transform .2s linear";
+				var el = row[index],
+					position,xDiff,yDiff,listener;
+				//Обнуление
+				item.style.left = 0;
+				item.style.top = 0;
+				item.classList.remove("transition");
+				//add some code to make transition work like it should
+				item.style.transition = null; //to css
+				item.style.transform = "translateX(0px) translateY(0px)";
+				window.getComputedStyle(item,null).transform; // hack to previous string work
+				if(el.value){
+					if(el.new){
+						item.style.left = el.x * step + "px";
+						item.style.top = el.y * step + "px";
+						//add animation for new element =============>>>>>>>>>>>>>> HERE!!!!!!!
+						item.classList.add("new-el-animation");
+						el.new = !el.new;
+					}else{
+						item.classList.remove("new-el-animation");
+						xDiff = el.x - el.xPrev;
+						yDiff = el.y - el.yPrev;
+//						item.style.left = el.x * step + "px";
+//						item.style.top = el.y * step + "px";
+						item.style.left = el.xPrev * step + "px";
+						item.style.top = el.yPrev * step + "px";
+						item.classList.add("transition");
+						position = "translateX("+xDiff * step + "px) translateY("+ yDiff * step + "px)"; //add some code to make transition work like it should
+						item.style.transform = position;
+						item.addEventListener("transitionend", function(){
+							console.log("transitionend");
+						}, false);
+						if(el.inc){
+							item.classList.add("inc-el-animation");
+							el.inc = !el.inc;
+						}else{
+							item.classList.remove("inc-el-animation");
+						}
+
+						//item.style.transition = "transform .25s linear"; //to css
+						//console.log("Pos: ",(index+1)*(i+1),"x: ",el.x,"y: ",el.y,"xPrev: ",el.xPrev,"yPrev: ",el.yPrev,"xDiff: ",xDiff,"yDiff: ",yDiff,"left: ",getOnlyDigitsFromCSSProperty(item,"left"),"top: ",getOnlyDigitsFromCSSProperty(item,"top"));
+					}
 				}
 			});
 		});
 	}
 
-	function setGameFiledElColor(gFieldList,gameFieldObj){
+	function setGameFieldElColor(gFieldList,gameFieldObj){
 		var color;
 
 		gFieldList.forEach(function(rowArr,i){
@@ -625,7 +715,7 @@
 	function drawGameField(gFieldList,gameFieldObj){ //add needed functions
 		setGameFieldValues(gFieldList,gameFieldObj);
 		setGameFieldElCoordinates(gFieldList,gameFieldObj);
-		setGameFiledElColor(gFieldList,gameFieldObj);
+		setGameFieldElColor(gFieldList,gameFieldObj);
 	}
 
 	function getOnlyDigitsFromCSSProperty(element,property){
@@ -675,6 +765,7 @@
 
 					document.onclick = function(event){
 						if(event){
+							document.onclick = null;
 							startGame();
 						}
 					}
