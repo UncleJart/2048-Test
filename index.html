@@ -63,6 +63,7 @@
 		vertical-align: middle;
 		color: #FFFFFF;
 		font: 900 normal 2em/100px Arial;
+		transform: translateX(50px) translateY(50px);
 	}
 
 	.new-el-animation{
@@ -203,6 +204,29 @@
 			if (item instanceof htmlElementType){
 				resArray.push(item);
 			}
+		});
+	}
+
+	function getCssTransformMatrix(element){                                    //===========>>>>>>>>> Rewrite for full matrix decomposition
+		var transformMatrix = window.getComputedStyle(element,null).transform,
+				regExp = /\-?\d\.?\d*/gi;
+
+		console.log(transformMatrix.match(regExp));
+		return transformMatrix.match(regExp);
+	}
+
+	function getCssTranslateProperty(transformArray){                                    //===========>>>>>>>>> Rewrite for full matrix decomposition
+		transformArray.forEach(function(item,i,array){
+			array[i] = +item;
+		});
+
+		console.log(transformArray.slice(-2));
+		return transformArray.slice(-2);
+	}
+
+	function checkForZeroTranslateProperty(element){
+		return getCssTranslateProperty(getCssTransformMatrix(element)).every(function(item){
+			return !item;
 		});
 	}
 //Constructors
@@ -467,21 +491,17 @@
 			step = options.step,
 			cnt,mark;
 		for(cnt = startPoint; options.check(cnt); cnt += step) {
-			if(row[cnt].value !== startValue && row[cnt + 1]){
-				if(!mark && row[cnt].value === row[cnt + 1].value){
-					row[cnt].value += row[cnt + 1].value;
+			if(row[cnt].value !== startValue && row[cnt + step]){
+				if(row[cnt].value === row[cnt + step].value){
+					row[cnt].value += row[cnt + step].value;
 					row[cnt].inc = true;
-					row[cnt + 1].value = startValue;
-					row[cnt + 1].x = null; //change to -1
-					row[cnt + 1].y = null; //change to -1
-					row[cnt + 1].xPrev = null;  //??
-					row[cnt + 1].yPrev = null;  //??
-					row[cnt + 1].new = false;   //Add some check or variable for changed element
-					row[cnt + 1].inc = false;   //Add some check or variable for changed element
-					mark = !mark;
-				}
-				if(mark && row[cnt].value !== row[cnt + 1].value){  //Rewrite - makes sum of three element in a row and two the same ====>>>???
-					mark = !mark;
+					row[cnt + step].value = startValue; //to separate function ===================>>>>>>>>>>>>>>>>>>>>  !!!!!!!!!!!!!!!!!!!!
+					row[cnt + step].x = null; //change to -1
+					row[cnt + step].y = null; //change to -1
+					row[cnt + step].xPrev = null;  //??
+					row[cnt + step].yPrev = null;  //??
+					row[cnt + step].new = false;   //Add some check or variable for changed element
+					row[cnt + step].inc = false;   //Add some check or variable for changed element
 				}
 			}
 		}
@@ -619,7 +639,7 @@
 		});
 	}
 
-	function setGameFieldElCoordinates(gFieldList,gameFieldObj){ //fix smth about height of gamefield, mb attributes must be set from Javascript
+	function setGameFieldElCoordinates(gFieldList,gameFieldObj,firstTime){ //fix smth about height of gamefield, mb attributes must be set from Javascript
 		var firstGFieldEl = gFieldList[0][0],
 			numOfElInRow = gFieldList[0].length,
 			parentNode = firstGFieldEl.parentNode,
@@ -636,44 +656,65 @@
 				item.style.left = 0;
 				item.style.top = 0;
 				item.classList.remove("transition");
+				item.classList.remove("inc-el-animation");
 				//add some code to make transition work like it should
 				item.style.transition = null; //to css
-				item.style.transform = "translateX(0px) translateY(0px)";
+				item.style.transform = "translateX(0px) translateY(0px)"; //translate(0px)???
 				window.getComputedStyle(item,null).transform; // hack to previous string work
 				if(el.value){
-					if(el.new){
-						item.style.left = el.x * step + "px";
-						item.style.top = el.y * step + "px";
-						//add animation for new element =============>>>>>>>>>>>>>> HERE!!!!!!!
-						item.classList.add("new-el-animation");
-						el.new = !el.new;
-					}else{
+					if(!el.new){
 						item.classList.remove("new-el-animation");
 						xDiff = el.x - el.xPrev;
 						yDiff = el.y - el.yPrev;
-//						item.style.left = el.x * step + "px";
-//						item.style.top = el.y * step + "px";
 						item.style.left = el.xPrev * step + "px";
 						item.style.top = el.yPrev * step + "px";
 						item.classList.add("transition");
 						position = "translateX("+xDiff * step + "px) translateY("+ yDiff * step + "px)"; //add some code to make transition work like it should
 						item.style.transform = position;
-						item.addEventListener("transitionend", function(){
-							console.log("transitionend");
-						}, false);
+
 						if(el.inc){
-							item.classList.add("inc-el-animation");
-							el.inc = !el.inc;
-						}else{
-							item.classList.remove("inc-el-animation");
+							if(!xDiff && !yDiff){
+								item.classList.add("inc-el-animation");
+								el.inc = !el.inc;
+							}else{
+								item.addEventListener("transitionend",somefunc,false);
+								el.inc = !el.inc;
+							}
 						}
 
-						//item.style.transition = "transform .25s linear"; //to css
-						//console.log("Pos: ",(index+1)*(i+1),"x: ",el.x,"y: ",el.y,"xPrev: ",el.xPrev,"yPrev: ",el.yPrev,"xDiff: ",xDiff,"yDiff: ",yDiff,"left: ",getOnlyDigitsFromCSSProperty(item,"left"),"top: ",getOnlyDigitsFromCSSProperty(item,"top"));
+						function somefunc(event){
+							item.removeEventListener("transitionend",somefunc,false);
+							item.classList.remove("transition");
+							item.style.transform = "translateX(0px) translateY(0px)";
+							item.style.left = el.x * step + "px";
+							item.style.top = el.y * step  + "px";
+							item.classList.add("inc-el-animation");
+						}
+					}else{
+						item.style.visibility = "hidden";
+						item.style.left = el.x * step + "px";
+						item.style.top = el.y * step + "px";
+						//add animation for new element =============>>>>>>>>>>>>>> HERE!!!!!!!
+						if(firstTime){
+							item.style.visibility = "visible";
+							item.classList.add("new-el-animation");
+						}else{
+							document.addEventListener("transitionend",somefunc2,false);
+						}
+						//item.addEventListener("transitionend",somefunc2,false);
+						el.new = !el.new;
+
+						function somefunc2(){
+							console.log("somefunc2 transition end");
+							document.removeEventListener("transitionend",somefunc2,false);
+							item.style.visibility = "visible";
+							item.classList.add("new-el-animation");
+						}
 					}
 				}
 			});
 		});
+
 	}
 
 	function setGameFieldElColor(gFieldList,gameFieldObj){
@@ -712,10 +753,10 @@
 		return colors[colorIndex];
 	}
 
-	function drawGameField(gFieldList,gameFieldObj){ //add needed functions
+	function drawGameField(gFieldList,gameFieldObj,firstTime){ //add needed functions
 		setGameFieldValues(gFieldList,gameFieldObj);
-		setGameFieldElCoordinates(gFieldList,gameFieldObj);
 		setGameFieldElColor(gFieldList,gameFieldObj);
+		setGameFieldElCoordinates(gFieldList,gameFieldObj,firstTime);
 	}
 
 	function getOnlyDigitsFromCSSProperty(element,property){
@@ -742,7 +783,7 @@
 			createGameFieldElementsArray(gFieldList,gameFieldElement);  //======>>>>>>> Creating DOM Elements GameField Array
 
 			gameField.generateStartElements();
-			drawGameField(gFieldList,gameField);  //first launch
+			drawGameField(gFieldList,gameField,true);  //first launch - must be some value else????
 			getDirection = document.addEventListener("keyup",keyListener);
 
 
@@ -758,7 +799,9 @@
 
 				handleKeyCode(gameField,keyCode,moveStraight);
 
-				drawGameField(gFieldList,gameField);
+				if (keyCode === 37 || keyCode === 38 || keyCode === 39 || keyCode === 40){  //Must been changed === to many code ....
+					drawGameField(gFieldList,gameField);
+				}
 
 				if (gameField.gameFieldIsFull){
 					getDirection = document.removeEventListener("keyup",keyListener);
