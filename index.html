@@ -700,13 +700,15 @@
 							item.classList.add("new-el-animation");
 						}else{
 							document.addEventListener("transitionend",somefunc2,false);
+							document.addEventListener("animationend",somefunc2,false);
 						}
-						//item.addEventListener("transitionend",somefunc2,false);
 						el.new = !el.new;
+						//item.addEventListener("transitionend",somefunc2,false);
 
 						function somefunc2(){
 							console.log("somefunc2 transition end");
 							document.removeEventListener("transitionend",somefunc2,false);
+							document.removeEventListener("animationend",somefunc2,false);
 							item.style.visibility = "visible";
 							item.classList.add("new-el-animation");
 						}
@@ -714,7 +716,6 @@
 				}
 			});
 		});
-
 	}
 
 	function setGameFieldElColor(gFieldList,gameFieldObj){
