@@ -16,6 +16,7 @@
 		margin: auto;
 		width: 500px;
 		height: 500px;
+		border-radius: 5px;
 		position: relative;
 		border: 1px solid #000000;
 	}
@@ -50,6 +51,7 @@
 	.square{
 		width: 100px;
 		height: 100px;
+		border-radius: 5px;
 	}
 
 	.background-wrapper .square{
@@ -63,7 +65,6 @@
 		vertical-align: middle;
 		color: #FFFFFF;
 		font: 900 normal 2em/100px Arial;
-		transform: translateX(50px) translateY(50px);
 	}
 
 	.new-el-animation{
@@ -76,6 +77,65 @@
 
 	.transition{
 		transition: transform .1s linear;
+	}
+
+	.game-over-wrapper{
+		display: none;
+		opacity: .4;
+		width: 500px;
+		height: 500px;
+		background-color: #000000;
+		position: absolute;
+	}
+
+	.game-over-wrapper p{
+		margin: 0;
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		font: 900 normal 2em Arial;
+	}
+
+	button,
+	.score-wrapper{
+		border-radius: 5px;
+		position: absolute;
+		width: 100px;
+		height: 60px;
+		background-color: #8F7A66;
+		transform: translateY(120%);
+		bottom: 0;
+	}
+
+	.score-wrapper{
+		right: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+
+	p{
+		margin: 0;
+	}
+
+	button, p {
+		text-align: center;
+		color: #FFFFFF;
+	}
+
+	button,
+	.score-wrapper p:first-child{
+		font: 900 normal 0.8em Arial;
+	}
+
+	.score-wrapper p:last-child{
+		font: 900 normal 1em Arial;
+	}
+
+	button{
+		outline: none;
+		border: none;
 	}
 	
 	@keyframes newElement {
@@ -151,6 +211,14 @@
 					<div class="square element"></div>
 				</div>
 			</div>
+			<div class="game-over-wrapper" id="gameOver">
+				<p>Game Over</p>
+			</div>
+			<button id="newGame">New Game</button>
+			<div class="score-wrapper">
+				<p>Score:</p>
+				<p id="score"></p>
+			</div>
 		</div>
 	</article>
 </body>
@@ -207,23 +275,6 @@
 		});
 	}
 
-	function getCssTransformMatrix(element){                                    //===========>>>>>>>>> Rewrite for full matrix decomposition
-		var transformMatrix = window.getComputedStyle(element,null).transform,
-				regExp = /\-?\d\.?\d*/gi;
-
-		console.log(transformMatrix.match(regExp));
-		return transformMatrix.match(regExp);
-	}
-
-	function getCssTranslateProperty(transformArray){                                    //===========>>>>>>>>> Rewrite for full matrix decomposition
-		transformArray.forEach(function(item,i,array){
-			array[i] = +item;
-		});
-
-		console.log(transformArray.slice(-2));
-		return transformArray.slice(-2);
-	}
-
 	function checkForZeroTranslateProperty(element){
 		return getCssTranslateProperty(getCssTransformMatrix(element)).every(function(item){
 			return !item;
@@ -261,7 +312,7 @@
 			return prev + curr;
 		},0);
 
-		return startValue; // not needed
+		return startValue;
 
 	};
 //Objects for creating Game Field
@@ -274,6 +325,7 @@
 		this.gameField = [];
 		this.startValue = startValue;
 		this.gameFieldIsFull = false;
+		this.score = 0;
 		this.elementValues = new StartValues(elementValues);
 		this.numOfStartElelements = numOfStartElements;
 
@@ -393,39 +445,43 @@
 		});
 	};
 //Сдвиг элементов горизонтально (вправо или влево)
-	GameField.prototype.moveHorizontally = function(moveStraight){
+	GameField.prototype.moveGameField = function(moveStraight,moveHorizontally){
 		var gFieldValues;
+
 		if(!this.gameFieldIsFull){
 			gFieldValues = this.getValues();
 			this.savePreviousPositions();
-			this.reverseCoordinates();
+			if(moveHorizontally){
+				this.reverseCoordinates();
+			}else{
+				this.gameField = reverseArray(this.gameField);
+				moveStraight = !moveStraight;
+			}
 			moveGameField(this,moveStraight);
-			this.reverseCoordinates();
+			if(moveHorizontally){
+				this.reverseCoordinates();
+			}else{
+				this.gameField = reverseArray(this.gameField);
+			}
 			if(!compareArrays(gFieldValues,this.getValues())){
 				this.generateElement();
 			}
 			this.gameFieldIsFull = this.checkForFullGameField();
 		}
-
-		printArray(this);
 	};
 
-	GameField.prototype.moveVertically = function(moveStraight){ //Add check for not changed gamefield
-		var gFieldValues;
-		if(!this.gameFieldIsFull){
-			gFieldValues = this.getValues();
-			this.savePreviousPositions();
-			this.gameField = reverseArray(this.gameField);
-			moveStraight = !moveStraight;
-			moveGameField(this,moveStraight);
-			this.gameField = reverseArray(this.gameField);
-			if(!compareArrays(gFieldValues,this.getValues())){
-				this.generateElement();
-			}
-			this.gameFieldIsFull = this.checkForFullGameField();
-		}
+	GameField.prototype.moveHorizontally = function(moveStraight){
 
-		printArray(this);
+		this.moveGameField(moveStraight,true);
+
+		printArray(this);   // ===>>>> Delete in final version
+	};
+
+	GameField.prototype.moveVertically = function(moveStraight){
+
+		this.moveGameField(moveStraight);
+
+		printArray(this); // ===>>>> Delete in final version
 	};
 
 	GameField.prototype.savePreviousPositions = function(){
@@ -437,10 +493,18 @@
 		});
 	};
 
+	GameField.prototype.resetElementsStateProperties = function(){
+		this.gameField.forEach(function(row){
+			row.forEach(function(item){
+				item.new = false;
+				item.inc = false;
+			});
+		});
+	};
+
 	function moveGameField(targetFieldObj,moveStraight){    //add column
-		targetFieldObj.gameField.forEach(function(item,column){
-			var row = item,
-				options = setArrayShiftOptions(moveStraight,row);
+		targetFieldObj.gameField.forEach(function(row,column){
+			var options = setArrayShiftOptions(moveStraight,row);
 			moveAndMergeElementsOfArray(targetFieldObj,column,row,options);
 		});
 	}
@@ -482,7 +546,7 @@
 		var startValue = targetObj.startValue;
 
 		moveElementsOfArray(column,row,startValue,options);
-		mergeElementsOfArray(column,row,startValue,options);
+		mergeElementsOfArray(targetObj,column,row,startValue,options);
 
 		return row;
 	}
@@ -503,24 +567,31 @@
 		}
 	}
 
-	function mergeElementsOfArray(column,row,startValue,options){
+	function mergeElementsOfArray(targetObj,column,row,startValue,options){
 		var startPoint = options.startPoint,
 			step = options.step,
 			cnt;
 		for(cnt = startPoint; options.check(cnt); cnt += step) {
 			if(row[cnt].value !== startValue && row[cnt + step] && row[cnt].value === row[cnt + step].value){
 				row[cnt].value += row[cnt + step].value;
+				targetObj.score += row[cnt].value;
 				row[cnt].inc = true;
-				row[cnt + step].value = startValue; //to separate function ===================>>>>>>>>>>>>>>>>>>>>  !!!!!!!!!!!!!!!!!!!!
-				row[cnt + step].x = null; //change to -1
-				row[cnt + step].y = null; //change to -1
-				row[cnt + step].xPrev = null;  //??
-				row[cnt + step].yPrev = null;  //??
-				row[cnt + step].new = false;   //Add some check or variable for changed element
-				row[cnt + step].inc = false;   //Add some check or variable for changed element
+				setRowElementToDefaults(row[cnt + step],startValue);
 			}
 		}
 		moveElementsOfArray(column,row,startValue,options);
+	}
+
+	function setRowElementToDefaults(rowEl,startValue,allProperties){
+		rowEl.value = startValue;
+		rowEl.x = null;
+		rowEl.y = null;
+		rowEl.xPrev = null;
+		rowEl.yPrev = null;
+		if(allProperties){
+			rowEl.new = false;
+			rowEl.inc = false;
+		}
 	}
 
 	function makeArrayReshuffle(column,row,elPos,startValue,lastEmptyElPos,options){
@@ -528,14 +599,10 @@
 		lastEmptyElPos = getLatestEmptyElementPos(row,startValue,lastEmptyElPos,options);
 		row[lastEmptyElPos].value = row[elPos].value;
 		row[lastEmptyElPos].xPrev = row[elPos].xPrev;
-		row[lastEmptyElPos].yPrev = row[elPos].yPrev;   //maybe rewrite for object copy
+		row[lastEmptyElPos].yPrev = row[elPos].yPrev;
 		row[lastEmptyElPos].x = column;
 		row[lastEmptyElPos].y = lastEmptyElPos;
-		row[elPos].value = startValue;
-		row[elPos].x = null;
-		row[elPos].y = null;
-		row[elPos].xPrev = null;
-		row[elPos].yPrev = null;
+		setRowElementToDefaults(row[elPos],startValue);
 		lastEmptyElPos = elPos;
 		return lastEmptyElPos;
 	}
@@ -642,7 +709,7 @@
 		});
 	}
 
-	function setGameFieldValues(gFieldList,gameFieldObj){
+	function setGameFieldValues(gFieldList,scoreElement,gameFieldObj){
 		gFieldList.forEach(function(rowArr,i){
 			var column = gameFieldObj.gameField[i];
 			rowArr.forEach(function(item,index){
@@ -650,6 +717,7 @@
 				item.innerHTML = row.value;
 			});
 		});
+		scoreElement.innerHTML = gameFieldObj.score;
 	}
 
 	function setGameFieldElCoordinates(gFieldList,gameFieldObj,firstTime){ //fix smth about height of gamefield, mb attributes must be set from Javascript
@@ -664,39 +732,26 @@
 			var row = gameFieldObj.gameField[i];
 			rowArr.forEach(function(item,index){
 				var el = row[index],
-					position,xDiff,yDiff,listener;
-				//Обнуление
-				item.style.left = 0;
-				item.style.top = 0;
-				item.classList.remove("transition");
-				item.classList.remove("inc-el-animation");
-				//add some code to make transition work like it should
-				item.style.transition = null; //to css
-				item.style.transform = "translateX(0px) translateY(0px)"; //translate(0px)???
-				window.getComputedStyle(item,null).transform; // hack to previous string work
+					xDiff = el.x - el.xPrev,
+					yDiff = el.y - el.yPrev;
+				resetGameFieldCoordinatesAndAnimation(item);
 				if(el.value){
 					if(!el.new){
-						item.classList.remove("new-el-animation");
-						xDiff = el.x - el.xPrev;
-						yDiff = el.y - el.yPrev;
-						item.style.left = el.xPrev * step + "px";
-						item.style.top = el.yPrev * step + "px";
-						item.classList.add("transition");
-						position = "translateX("+xDiff * step + "px) translateY("+ yDiff * step + "px)"; //add some code to make transition work like it should
-						item.style.transform = position;
+
+						setGameFieldElementPosition(item,el,step,xDiff,yDiff);
 
 						if(el.inc){
 							if(!xDiff && !yDiff){
 								item.classList.add("inc-el-animation");
 								el.inc = !el.inc;
 							}else{
-								item.addEventListener("transitionend",somefunc,false);
+								item.addEventListener("transitionend",onTransitionEnd,false);
 								el.inc = !el.inc;
 							}
 						}
 
-						function somefunc(event){
-							item.removeEventListener("transitionend",somefunc,false);
+						function onTransitionEnd(){
+							item.removeEventListener("transitionend",onTransitionEnd,false);
 							item.classList.remove("transition");
 							item.style.transform = "translateX(0px) translateY(0px)";
 							item.style.left = el.x * step + "px";
@@ -712,16 +767,16 @@
 							item.style.visibility = "visible";
 							item.classList.add("new-el-animation");
 						}else{
-							document.addEventListener("transitionend",somefunc2,false);
-							document.addEventListener("animationend",somefunc2,false);
+							document.addEventListener("transitionend",onTransitionAndAnimationEnd,false);
+							document.addEventListener("animationend",onTransitionAndAnimationEnd,false);
 						}
 						el.new = !el.new;
 						//item.addEventListener("transitionend",somefunc2,false);
 
-						function somefunc2(){
-							console.log("somefunc2 transition end");
-							document.removeEventListener("transitionend",somefunc2,false);
-							document.removeEventListener("animationend",somefunc2,false);
+						function onTransitionAndAnimationEnd(){
+							//console.log("somefunc2 transition end");
+							document.removeEventListener("transitionend",onTransitionAndAnimationEnd,false);
+							document.removeEventListener("animationend",onTransitionAndAnimationEnd,false);
 							item.style.visibility = "visible";
 							item.classList.add("new-el-animation");
 						}
@@ -729,6 +784,23 @@
 				}
 			});
 		});
+	}
+
+	function resetGameFieldCoordinatesAndAnimation(domEl){
+		domEl.style.left = 0;
+		domEl.style.top = 0;
+		domEl.classList.remove("transition");
+		domEl.classList.remove("new-el-animation");
+		domEl.classList.remove("inc-el-animation");
+		domEl.style.transform = "translateX(0px) translateY(0px)";
+		window.getComputedStyle(domEl,null).transform; // hack to previous string work
+	}
+
+	function setGameFieldElementPosition(domEl,gameFieldEl,step,xDiff,yDiff){
+		domEl.style.left = gameFieldEl.xPrev * step + "px";
+		domEl.style.top = gameFieldEl.yPrev * step + "px";
+		domEl.classList.add("transition");
+		domEl.style.transform = "translateX("+xDiff * step + "px) translateY("+ yDiff * step + "px)";
 	}
 
 	function setGameFieldElColor(gFieldList,gameFieldObj){
@@ -767,8 +839,8 @@
 		return colors[colorIndex];
 	}
 
-	function drawGameField(gFieldList,gameFieldObj,firstTime){ //add needed functions
-		setGameFieldValues(gFieldList,gameFieldObj);
+	function drawGameField(gFieldList,scoreElement,gameFieldObj,firstTime){ //add needed functions
+		setGameFieldValues(gFieldList,scoreElement,gameFieldObj);
 		setGameFieldElColor(gFieldList,gameFieldObj);
 		setGameFieldElCoordinates(gFieldList,gameFieldObj,firstTime);
 	}
@@ -780,57 +852,67 @@
 		return Number(propertyValue.match(regExp).join(""));
 	}
 
+	function checkForValidKeyCode(validKeyCodes,keyCode){       //========>>>>> to keycodes and listeners
+		return validKeyCodes.some(function(item){
+			return item === keyCode;
+		});
+	}
 
 	function startGame(){
 		var startOptions = {
 			values : [2,4],
 			probability :[0.9,0.1]
 			},
-			getDirection = null,
-			gameOver = false;
+			getDirection = null;
 
 		function init(){
 			var gameField = new GameField(4,4,startOptions,2),  //=========>>>>>>>>>> Place to change gamefield dimensions and number of start elements
 				gameFieldElement = document.getElementById("gameField"),
+				gameOverBlock = document.getElementById("gameOver"),
+				newGameButton = document.getElementById("newGame"),
+				scoreElement = document.getElementById("score"),
 				gFieldList = [];
 
-			createGameFieldElementsArray(gFieldList,gameFieldElement);  //======>>>>>>> Creating DOM Elements GameField Array
-
+			gameOverBlock.style.display = "none";
+			createGameFieldElementsArray(gFieldList,gameFieldElement);
 			gameField.generateStartElements();
-			drawGameField(gFieldList,gameField,true);  //first launch - must be some value else????
-			getDirection = document.addEventListener("keyup",keyListener);
+			drawGameField(gFieldList,scoreElement,gameField,true);
+			getDirection = document.addEventListener("keyup",keyListener,false);
 
 
 			function keyListener(event){ //Must be swipeLeft/swipeRight
 				var keyCode = event.keyCode,
-						moveStraight;
+					moveStraight;
 
 				event.preventDefault();
 
-				if(keyCode === 38 || keyCode === 39){
+				if(checkForValidKeyCode([38,39],keyCode)){
 					moveStraight = true;
 				}
 
 				handleKeyCode(gameField,keyCode,moveStraight);
 
-				if (keyCode === 37 || keyCode === 38 || keyCode === 39 || keyCode === 40){  //Must been changed === to many code ....
-					drawGameField(gFieldList,gameField);
+				if (checkForValidKeyCode([37,38,39,40],keyCode)){
+					drawGameField(gFieldList,scoreElement,gameField);
 				}
 
 				if (gameField.gameFieldIsFull){
-					getDirection = document.removeEventListener("keyup",keyListener);
-
-					document.onclick = function(event){
-						if(event){
-							document.onclick = null;
-							startGame();
-						}
+					gameOverBlock.style.display = "block";
+					getDirection = document.removeEventListener("keyup",keyListener,false);
+					gameOverBlock.onclick = function(){
+						gameOverBlock.onclick = null;
+						startGame();
 					}
 				}
+			}
+
+			newGameButton.onclick = function(){
+				startGame();
 			}
 		}
 
 		init();
+
 	}
 
 	startGame();
