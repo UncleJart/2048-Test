@@ -266,7 +266,7 @@
 	};
 //Objects for creating Game Field
 	function GameField(numOfRows,numOfColumns,elementValues,numOfStartElements){
-		var cnt,cnt2,rowArray,gFieldEl,
+		var colCnt,rowCnt,rowArray,gFieldEl,
 			startValue = "";
 
 		numOfStartElements = numOfStartElements || 2;
@@ -277,9 +277,9 @@
 		this.elementValues = new StartValues(elementValues);
 		this.numOfStartElelements = numOfStartElements;
 
-		for(cnt = 0; cnt < numOfColumns; cnt++){        //rewrite
+		for(colCnt = 0; colCnt < numOfColumns; colCnt++){        //rewrite
 			rowArray = [];
-			for(cnt2 = 0; cnt2 < numOfRows; cnt2++){
+			for(rowCnt = 0; rowCnt < numOfRows; rowCnt++){
 				gFieldEl = {
 					value : startValue,
 					x: null,
@@ -317,9 +317,9 @@
 	};
 //Генерация стартовых элементов
 	GameField.prototype.generateStartElements = function(){
-		var counter;
+		var cnt;
 
-		for(counter = 1; counter <= this.numOfStartElelements; counter++){
+		for(cnt = 1; cnt <= this.numOfStartElelements; cnt++){
 			this.generateElement();
 		}
 
@@ -331,7 +331,27 @@
 			return item.every(function(item){
 				return item.value !== this.startValue;
 			},this);
+		},this) && !this.checkForPossibleRowMerge() && !this.checkForPossibleColumnMerge();
+	};
+
+	GameField.prototype.checkForPossibleMerge = function(){
+		return this.gameField.some(function(item){
+			return item.some(function(item,i,array){
+				return item.value !== this.startValue && array[i+1] && item.value === array[i+1].value;
+			},this);
 		},this);
+	};
+
+	GameField.prototype.checkForPossibleRowMerge = function(){
+		return this.checkForPossibleMerge();
+	};
+
+	GameField.prototype.checkForPossibleColumnMerge = function(){
+		var possColumnMerge;
+		this.gameField = reverseArray(this.gameField);
+		possColumnMerge = this.checkForPossibleMerge();
+		this.gameField = reverseArray(this.gameField);
+		return possColumnMerge;
 	};
 //Генерация случайной позиции элемента
 	GameField.prototype.generateElementPosition = function(){
@@ -357,7 +377,6 @@
 				values.push(item.value);
 			});
 		});
-
 		return values;
 	};
 
@@ -387,7 +406,7 @@
 			}
 			this.gameFieldIsFull = this.checkForFullGameField();
 		}
-		//debugger;
+
 		printArray(this);
 	};
 
@@ -405,13 +424,13 @@
 			}
 			this.gameFieldIsFull = this.checkForFullGameField();
 		}
-		//debugger;
+
 		printArray(this);
 	};
 
 	GameField.prototype.savePreviousPositions = function(){
 		this.gameField.forEach(function(row){
-			row.forEach(function(item,i,array){
+			row.forEach(function(item){
 				item.xPrev = item.x;
 				item.yPrev = item.y;
 			});
@@ -477,10 +496,8 @@
 		for(cnt = startPoint; options.check(cnt); cnt += step){
 			lastEmptyElPos = setStartEmptyElement(row,startValue,cnt,lastEmptyElPos);
 
-			if(row[cnt].value !== startValue && cnt !== startPoint){
-				if(lastEmptyElPos !== null){
-					lastEmptyElPos = makeArrayReshuffle(column,row,cnt,startValue,lastEmptyElPos,options);
-				}
+			if(row[cnt].value !== startValue && cnt !== startPoint && lastEmptyElPos !== null){
+				lastEmptyElPos = makeArrayReshuffle(column,row,cnt,startValue,lastEmptyElPos,options);
 			}
 
 		}
@@ -489,20 +506,18 @@
 	function mergeElementsOfArray(column,row,startValue,options){
 		var startPoint = options.startPoint,
 			step = options.step,
-			cnt,mark;
+			cnt;
 		for(cnt = startPoint; options.check(cnt); cnt += step) {
-			if(row[cnt].value !== startValue && row[cnt + step]){
-				if(row[cnt].value === row[cnt + step].value){
-					row[cnt].value += row[cnt + step].value;
-					row[cnt].inc = true;
-					row[cnt + step].value = startValue; //to separate function ===================>>>>>>>>>>>>>>>>>>>>  !!!!!!!!!!!!!!!!!!!!
-					row[cnt + step].x = null; //change to -1
-					row[cnt + step].y = null; //change to -1
-					row[cnt + step].xPrev = null;  //??
-					row[cnt + step].yPrev = null;  //??
-					row[cnt + step].new = false;   //Add some check or variable for changed element
-					row[cnt + step].inc = false;   //Add some check or variable for changed element
-				}
+			if(row[cnt].value !== startValue && row[cnt + step] && row[cnt].value === row[cnt + step].value){
+				row[cnt].value += row[cnt + step].value;
+				row[cnt].inc = true;
+				row[cnt + step].value = startValue; //to separate function ===================>>>>>>>>>>>>>>>>>>>>  !!!!!!!!!!!!!!!!!!!!
+				row[cnt + step].x = null; //change to -1
+				row[cnt + step].y = null; //change to -1
+				row[cnt + step].xPrev = null;  //??
+				row[cnt + step].yPrev = null;  //??
+				row[cnt + step].new = false;   //Add some check or variable for changed element
+				row[cnt + step].inc = false;   //Add some check or variable for changed element
 			}
 		}
 		moveElementsOfArray(column,row,startValue,options);
@@ -512,7 +527,7 @@
 
 		lastEmptyElPos = getLatestEmptyElementPos(row,startValue,lastEmptyElPos,options);
 		row[lastEmptyElPos].value = row[elPos].value;
-		row[lastEmptyElPos].xPrev = row[elPos].xPrev;   //не учитывается мердж
+		row[lastEmptyElPos].xPrev = row[elPos].xPrev;
 		row[lastEmptyElPos].yPrev = row[elPos].yPrev;   //maybe rewrite for object copy
 		row[lastEmptyElPos].x = column;
 		row[lastEmptyElPos].y = lastEmptyElPos;
@@ -526,10 +541,8 @@
 	}
 
 	function setStartEmptyElement(row,startValue,elPos,lastEmptyElPos){
-		if(row[elPos].value === startValue){
-			if(lastEmptyElPos === null){
-				lastEmptyElPos = elPos;
-			}
+		if(row[elPos].value === startValue && lastEmptyElPos === null){
+			lastEmptyElPos = elPos;
 		}
 		return lastEmptyElPos;
 	}
