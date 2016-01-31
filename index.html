@@ -223,9 +223,6 @@
 	</article>
 </body>
 <script>
-	var columnArray = [],
-		valuesArray = [2,4];
-
 //Utils
 	function getRandom(min, max) {
 		return Math.random() * (max - min) + min;
@@ -275,9 +272,16 @@
 		});
 	}
 
-	function checkForZeroTranslateProperty(element){
-		return getCssTranslateProperty(getCssTransformMatrix(element)).every(function(item){
-			return !item;
+	function getOnlyDigitsFromCSSProperty(element,property){
+		var regExp = /[0-9]/gi,
+			propertyValue = window.getComputedStyle(element,null)[property];
+
+		return Number(propertyValue.match(regExp).join(""));
+	}
+
+	function checkForValidKeyCode(validKeyCodes,keyCode){       //========>>>>> to keycodes and listeners
+		return validKeyCodes.some(function(item){
+			return item === keyCode;
 		});
 	}
 //Constructors
@@ -733,53 +737,18 @@
 			rowArr.forEach(function(item,index){
 				var el = row[index],
 					xDiff = el.x - el.xPrev,
-					yDiff = el.y - el.yPrev;
+					yDiff = el.y - el.yPrev,
+					x = el.x * step,
+					y = el.y * step;
 				resetGameFieldCoordinatesAndAnimation(item);
 				if(el.value){
 					if(!el.new){
-
 						setGameFieldElementPosition(item,el,step,xDiff,yDiff);
-
 						if(el.inc){
-							if(!xDiff && !yDiff){
-								item.classList.add("inc-el-animation");
-								el.inc = !el.inc;
-							}else{
-								item.addEventListener("transitionend",onTransitionEnd,false);
-								el.inc = !el.inc;
-							}
-						}
-
-						function onTransitionEnd(){
-							item.removeEventListener("transitionend",onTransitionEnd,false);
-							item.classList.remove("transition");
-							item.style.transform = "translateX(0px) translateY(0px)";
-							item.style.left = el.x * step + "px";
-							item.style.top = el.y * step  + "px";
-							item.classList.add("inc-el-animation");
+							addElIncrementAnimation(item,el,xDiff,yDiff,x,y);					
 						}
 					}else{
-						item.style.visibility = "hidden";
-						item.style.left = el.x * step + "px";
-						item.style.top = el.y * step + "px";
-						//add animation for new element =============>>>>>>>>>>>>>> HERE!!!!!!!
-						if(firstTime){
-							item.style.visibility = "visible";
-							item.classList.add("new-el-animation");
-						}else{
-							document.addEventListener("transitionend",onTransitionAndAnimationEnd,false);
-							document.addEventListener("animationend",onTransitionAndAnimationEnd,false);
-						}
-						el.new = !el.new;
-						//item.addEventListener("transitionend",somefunc2,false);
-
-						function onTransitionAndAnimationEnd(){
-							//console.log("somefunc2 transition end");
-							document.removeEventListener("transitionend",onTransitionAndAnimationEnd,false);
-							document.removeEventListener("animationend",onTransitionAndAnimationEnd,false);
-							item.style.visibility = "visible";
-							item.classList.add("new-el-animation");
-						}
+						addNewElAnimation(item,el,x,y,firstTime);
 					}
 				}
 			});
@@ -801,6 +770,46 @@
 		domEl.style.top = gameFieldEl.yPrev * step + "px";
 		domEl.classList.add("transition");
 		domEl.style.transform = "translateX("+xDiff * step + "px) translateY("+ yDiff * step + "px)";
+	}
+
+	function addNewElAnimation(domEl,gameFieldEl,x,y,firstTime){
+		domEl.style.visibility = "hidden";
+		domEl.style.left = x + "px";
+		domEl.style.top = y + "px";
+		if(firstTime){
+			domEl.style.visibility = "visible";
+			domEl.classList.add("new-el-animation");
+		}else{
+			document.addEventListener("transitionend",onElTransitionAndAnimationEnd(event,domEl),false);
+			document.addEventListener("animationend",onElTransitionAndAnimationEnd(event,domEl),false);
+		}
+		gameFieldEl.new = !gameFieldEl.new;
+	}
+	
+	function onElTransitionAndAnimationEnd(event,domEl){
+		document.removeEventListener("transitionend",onElTransitionAndAnimationEnd,false);
+		document.removeEventListener("animationend",onElTransitionAndAnimationEnd,false);
+		domEl.style.visibility = "visible";
+		domEl.classList.add("new-el-animation");
+	}
+
+	function addElIncrementAnimation(domEl,gameFieldEl,xDiff,yDiff,x,y){
+		if(!xDiff && !yDiff){
+			domEl.classList.add("inc-el-animation");
+			gameFieldEl.inc = !gameFieldEl.inc;
+		}else{
+			domEl.addEventListener("transitionend",onElTransitionEnd(event,domEl,x,y),false);
+			gameFieldEl.inc = !gameFieldEl.inc;
+		}
+	}
+
+	function onElTransitionEnd(event,domEl,x,y){
+		domEl.removeEventListener("transitionend",onElTransitionEnd,false);
+		domEl.classList.remove("transition");
+		domEl.style.transform = "translateX(0px) translateY(0px)";
+		domEl.style.left = x + "px";
+		domEl.style.top = y + "px";
+		domEl.classList.add("inc-el-animation");
 	}
 
 	function setGameFieldElColor(gFieldList,gameFieldObj){
@@ -839,23 +848,10 @@
 		return colors[colorIndex];
 	}
 
-	function drawGameField(gFieldList,scoreElement,gameFieldObj,firstTime){ //add needed functions
+	function drawGameField(gFieldList,scoreElement,gameFieldObj,firstTime){
 		setGameFieldValues(gFieldList,scoreElement,gameFieldObj);
 		setGameFieldElColor(gFieldList,gameFieldObj);
 		setGameFieldElCoordinates(gFieldList,gameFieldObj,firstTime);
-	}
-
-	function getOnlyDigitsFromCSSProperty(element,property){
-		var regExp = /[0-9]/gi,
-			propertyValue = window.getComputedStyle(element,null)[property];
-
-		return Number(propertyValue.match(regExp).join(""));
-	}
-
-	function checkForValidKeyCode(validKeyCodes,keyCode){       //========>>>>> to keycodes and listeners
-		return validKeyCodes.some(function(item){
-			return item === keyCode;
-		});
 	}
 
 	function startGame(){
@@ -877,8 +873,13 @@
 			createGameFieldElementsArray(gFieldList,gameFieldElement);
 			gameField.generateStartElements();
 			drawGameField(gFieldList,scoreElement,gameField,true);
-			getDirection = document.addEventListener("keyup",keyListener,false);
+			document.addEventListener("keyup",keyListener,false);
+			document.addEventListener("keydown",preventScrolling,false);
 
+
+			function preventScrolling(event){
+				event.preventDefault();
+			};
 
 			function keyListener(event){ //Must be swipeLeft/swipeRight
 				var keyCode = event.keyCode,
@@ -898,7 +899,8 @@
 
 				if (gameField.gameFieldIsFull){
 					gameOverBlock.style.display = "block";
-					getDirection = document.removeEventListener("keyup",keyListener,false);
+					document.removeEventListener("keyup",keyListener,false);
+					document.removeEventListener("keydown",preventScrolling,false);
 					gameOverBlock.onclick = function(){
 						gameOverBlock.onclick = null;
 						startGame();
@@ -907,6 +909,8 @@
 			}
 
 			newGameButton.onclick = function(){
+				document.removeEventListener("keyup",keyListener,false);
+				document.removeEventListener("keydown",preventScrolling,false);
 				startGame();
 			}
 		}
