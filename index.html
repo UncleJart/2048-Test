@@ -455,6 +455,7 @@
 		if(!this.gameFieldIsFull){
 			gFieldValues = this.getValues();
 			this.savePreviousPositions();
+			this.resetElementsStateProperties();
 			if(moveHorizontally){
 				this.reverseCoordinates();
 			}else{
@@ -745,10 +746,10 @@
 					if(!el.new){
 						setGameFieldElementPosition(item,el,step,xDiff,yDiff);
 						if(el.inc){
-							addElIncrementAnimation(item,el,xDiff,yDiff,x,y);					
+							addElIncrementAnimation(item,xDiff,yDiff,x,y);					
 						}
 					}else{
-						addNewElAnimation(item,el,x,y,firstTime);
+						addNewElAnimation(item,x,y,firstTime);
 					}
 				}
 			});
@@ -772,7 +773,9 @@
 		domEl.style.transform = "translateX("+xDiff * step + "px) translateY("+ yDiff * step + "px)";
 	}
 
-	function addNewElAnimation(domEl,gameFieldEl,x,y,firstTime){
+	function addNewElAnimation(domEl,x,y,firstTime){
+		var onTransitionAndAnimationEnd = onElTransitionAndAnimationEnd.bind(null,event,domEl);
+
 		domEl.style.visibility = "hidden";
 		domEl.style.left = x + "px";
 		domEl.style.top = y + "px";
@@ -780,36 +783,39 @@
 			domEl.style.visibility = "visible";
 			domEl.classList.add("new-el-animation");
 		}else{
-			document.addEventListener("transitionend",onElTransitionAndAnimationEnd(event,domEl),false);
-			document.addEventListener("animationend",onElTransitionAndAnimationEnd(event,domEl),false);
+			document.addEventListener("transitionend",onTransitionAndAnimationEnd,false);
+			document.addEventListener("animationend",onTransitionAndAnimationEnd,false);
 		}
-		gameFieldEl.new = !gameFieldEl.new;
+
+		function onElTransitionAndAnimationEnd(event,domEl){
+			document.removeEventListener("transitionend",onTransitionAndAnimationEnd,false);
+			document.removeEventListener("animationend",onTransitionAndAnimationEnd,false);
+			addNewElAnimationClass(domEl);		
+		}
 	}
-	
-	function onElTransitionAndAnimationEnd(event,domEl){
-		document.removeEventListener("transitionend",onElTransitionAndAnimationEnd,false);
-		document.removeEventListener("animationend",onElTransitionAndAnimationEnd,false);
+
+	function addNewElAnimationClass(domEl){
 		domEl.style.visibility = "visible";
 		domEl.classList.add("new-el-animation");
 	}
 
-	function addElIncrementAnimation(domEl,gameFieldEl,xDiff,yDiff,x,y){
+	function addElIncrementAnimation(domEl,xDiff,yDiff,x,y){
+		var onTransitionEnd = onElTransitionEnd.bind(null,event,domEl,x,y);
 		if(!xDiff && !yDiff){
 			domEl.classList.add("inc-el-animation");
-			gameFieldEl.inc = !gameFieldEl.inc;
 		}else{
-			domEl.addEventListener("transitionend",onElTransitionEnd(event,domEl,x,y),false);
-			gameFieldEl.inc = !gameFieldEl.inc;
+			domEl.addEventListener("transitionend",onTransitionEnd,false);
 		}
-	}
 
-	function onElTransitionEnd(event,domEl,x,y){
-		domEl.removeEventListener("transitionend",onElTransitionEnd,false);
-		domEl.classList.remove("transition");
-		domEl.style.transform = "translateX(0px) translateY(0px)";
-		domEl.style.left = x + "px";
-		domEl.style.top = y + "px";
-		domEl.classList.add("inc-el-animation");
+		function onElTransitionEnd(event,domEl,x,y){
+			domEl.removeEventListener("transitionend",onTransitionEnd,false);
+			domEl.classList.remove("transition");
+			domEl.style.transform = "translateX(0px) translateY(0px)";
+			domEl.style.left = x + "px";
+			domEl.style.top = y + "px";
+			domEl.classList.add("inc-el-animation");
+		}
+
 	}
 
 	function setGameFieldElColor(gFieldList,gameFieldObj){
@@ -858,8 +864,7 @@
 		var startOptions = {
 			values : [2,4],
 			probability :[0.9,0.1]
-			},
-			getDirection = null;
+			};
 
 		function init(){
 			var gameField = new GameField(4,4,startOptions,2),  //=========>>>>>>>>>> Place to change gamefield dimensions and number of start elements
@@ -878,7 +883,9 @@
 
 
 			function preventScrolling(event){
-				event.preventDefault();
+				if (checkForValidKeyCode([37,38,39,40],event.keyCode)){
+					event.preventDefault();
+				}
 			};
 
 			function keyListener(event){ //Must be swipeLeft/swipeRight
