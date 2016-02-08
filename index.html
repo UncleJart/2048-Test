@@ -5,156 +5,157 @@
 	<title>2048 Test</title>
 </head>
 <style>
-	.slide{
-		display: flex;
-		width: 1024px;
-		height: 768px;
-		background-color: lightgrey;
-	}
+.slide{
+	display: flex;
+	width: 1024px;
+	height: 768px;
+	background: url('images/background.jpg') no-repeat lightgrey;
+}
 
-	.gamefield{
-		margin: auto;
-		width: 500px;
-		height: 500px;
-		border-radius: 5px;
-		position: relative;
-		border: 1px solid #000000;
-	}
+.gamefield{
+	margin: auto;
+	width: 500px;
+	height: 500px;
+	border-radius: 5px;
+	position: relative;
+	border: 2px solid #000000;
+	background-color: rgba(211,211,211,0.8);
+}
 
-	.wrapper{
-		position: absolute;
-		top: 20px;
-		left: 20px;
-		height: 460px;
-	}
+.wrapper{
+	position: absolute;
+	top: 20px;
+	left: 20px;
+	height: 460px;
+}
 
-	.column{
-		width: 460px;
-	}
+.column{
+	width: 460px;
+}
 
-	.background-wrapper{
-		display: flex;
-		flex-flow: column wrap;
-		justify-content: space-between;
-	}
+.background-wrapper{
+	display: flex;
+	flex-flow: column wrap;
+	justify-content: space-between;
+}
 
-	.background-wrapper .column{
-		display: flex;
-		flex-flow: row nowrap;
-		justify-content: space-between;
-	}
+.background-wrapper .column{
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: space-between;
+}
 
-	.elements-wrapper .column{
-		display: block;
-	}
+.elements-wrapper .column{
+	display: block;
+}
 
-	.square{
-		width: 100px;
-		height: 100px;
-		border-radius: 5px;
-	}
+.square{
+	width: 100px;
+	height: 100px;
+	border-radius: 5px;
+}
 
-	.background-wrapper .square{
-		background-color: #CDC1B4;
-	}
+.background-wrapper .square{
+	background-color: #CDC1B4;
+}
 
-	.elements-wrapper .square{
-		position: absolute;
-		background-color: transparent;
-		text-align: center;
-		vertical-align: middle;
-		color: #FFFFFF;
-		font: 900 normal 2em/100px Arial;
-	}
+.elements-wrapper .square{
+	position: absolute;
+	background-color: transparent;
+	text-align: center;
+	vertical-align: middle;
+	color: #FFFFFF;
+	font: 900 normal 2em/100px Arial;
+}
 
-	.new-el-animation{
-		animation: newElement .1s linear;
-	}
+.new-el-animation{
+	animation: newElement .1s linear;
+}
 
-	.inc-el-animation{
-		animation: incElement .1s linear;
-	}
+.inc-el-animation{
+	animation: incElement .1s linear;
+}
 
-	.transition{
-		transition: transform .1s linear;
-	}
+.transition{
+	transition: transform .1s linear;
+}
 
-	.game-over-wrapper{
-		display: none;
-		opacity: .4;
-		width: 500px;
-		height: 500px;
-		background-color: #000000;
-		position: absolute;
-	}
+.game-over-wrapper{
+	/*display: none;*/
+	opacity: .4;
+	width: 500px;
+	height: 500px;
+	background-color: #000000;
+	position: absolute;
+}
 
-	.game-over-wrapper p{
-		margin: 0;
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		font: 900 normal 2em Arial;
-	}
+.game-over-wrapper p{
+	margin: 0;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	font: 900 normal 2em Arial;
+}
 
-	button,
-	.score-wrapper{
-		border-radius: 5px;
-		position: absolute;
-		width: 100px;
-		height: 60px;
-		background-color: #8F7A66;
-		transform: translateY(120%);
-		bottom: 0;
-	}
+button,
+.score-wrapper{
+	border-radius: 5px;
+	border: 2px solid #000000;
+	position: absolute;
+	width: 100px;
+	height: 60px;
+	background-color: #8F7A66;
+	transform: translateY(120%);
+	bottom: 0;
+}
 
-	.score-wrapper{
-		right: 0;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-	}
+button{
+	outline: none;
+}
 
-	p{
-		margin: 0;
-	}
+.score-wrapper{
+	right: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
 
-	button, p {
-		text-align: center;
-		color: #FFFFFF;
-	}
+p{
+	margin: 0;
+}
 
-	button,
-	.score-wrapper p:first-child{
-		font: 900 normal 0.8em Arial;
-	}
+button, p {
+	text-align: center;
+	color: #FFFFFF;
+}
 
-	.score-wrapper p:last-child{
-		font: 900 normal 1em Arial;
-	}
+button,
+.score-wrapper p:first-child{
+	font: 900 normal 0.8em Arial;
+}
 
-	button{
-		outline: none;
-		border: none;
-	}
-	
-	@keyframes newElement {
-		from{
-			transform: scale(0);
-		}
-		to{
-			transform: scale(1);
-		}
-	}
+.score-wrapper p:last-child{
+	font: 900 normal 1em Arial;
+}
 
-	@keyframes incElement {
-		from{
-			transform: scale(1.5);
-		}
-		to{
-			transform: scale(1);
-		}
+@keyframes newElement {
+	from{
+	transform: scale(0);
 	}
+	to{
+	transform: scale(1);
+	}
+}
+
+@keyframes incElement {
+	from{
+	transform: scale(1.5);
+	}
+	to{
+	transform: scale(1);
+	}
+}
 </style>
 <body>
 	<article class="slide">
